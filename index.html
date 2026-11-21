@@ -148,7 +148,10 @@ window.startRouteBuilder=()=>{init();fit();replayBuild();};
 let client=null, user=null, saveTimer=null, saving=false, changedDuringSave=false, initialized=false, suppress=false;
 const el=id=>document.getElementById(id), say=t=>el('loginError').textContent=t;
 const cfgKey='routebuilder_supabase_config';
-try{let c=JSON.parse(localStorage.getItem(cfgKey)||'{}');el('sbUrl').value=c.url||'';el('sbKey').value=c.key||''}catch(e){}
+const DEFAULT_URL='https://kjybascmkdxzfpkeache.supabase.co';
+ const DEFAULT_KEY='sb_publishable_SERoskeMSXGyYVLY1t_ZcA_BrbqAQrC';
+ try{let c=JSON.parse(localStorage.getItem(cfgKey)||'{}');el('sbUrl').value=c.url||'';el('sbKey').value=c.key||''}catch(e){}
+ el('sbUrl').value=el('sbUrl').value||DEFAULT_URL;el('sbKey').value=el('sbKey').value||DEFAULT_KEY;
 function configure(){
  let url=el('sbUrl').value.trim(),key=el('sbKey').value.trim();
  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url)||!key){throw Error('Enter your Supabase project URL and publishable/anon key.')}
