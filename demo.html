@@ -1,0 +1,1323 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="strict-origin-when-cross-origin"><title>Route Builder</title><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,Arial;background:#f5f6f7;color:#26313b}header{background:white;border-bottom:1px solid #ddd;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}h1{margin:0;font-size:19px}button,select,input{font:inherit}button,select{padding:8px 10px;border:1px solid #cbd2d9;background:white;border-radius:7px;cursor:pointer}button:hover{background:#f0f4f7}button.primary{background:#275c76;color:white;border-color:#275c76}.layout{display:grid;grid-template-columns:350px 1fr;height:calc(100vh - 66px);min-height:500px}.side{padding:14px;overflow:auto;background:#fafbfc;border-right:1px solid #ddd}.panel{background:white;border:1px solid #e0e3e7;border-radius:9px;padding:12px;margin-bottom:12px}.row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.row>*{min-width:0}.wide{width:100%}.small{font-size:12px;color:#61707c}.stop{border-top:1px solid #e9ecef;padding:10px 0}.stop b{display:block}.stop .actions{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}.stop .actions button{padding:5px 7px;font-size:12px}.stop[draggable="true"]{cursor:grab}.stop.dragging{opacity:.45}.stop.drop-target{outline:2px dashed #2877a5;background:#eef8ff}.stop.selected-stop{outline:2px solid #2877a5;background:#eef8ff;border-radius:7px;padding:10px;margin:6px 0}.customer-editor{background:#f5f9fc;border:1px solid #cbd9e2;border-radius:7px;padding:10px;margin-top:9px}.customer-editor label{display:block;font-size:12px;color:#52616b;margin:7px 0}.customer-editor input,.customer-editor select{width:100%;margin-top:3px}.stop .order-edit{width:62px;padding:4px;border:1px solid #cbd2d9;border-radius:5px}.stop .order-tools{display:flex;align-items:center;gap:6px;margin:5px 0}#map{width:100%;height:100%;background:#dfe7e2}.mapwrap{position:relative}.hint{position:absolute;z-index:800;bottom:12px;left:12px;background:#fffef0;padding:8px 11px;border:1px solid #d4d1b4;border-radius:6px;max-width:350px;font-size:12px}.pin{background:#db2777;color:white;border:2px solid white;border-radius:50%;text-align:center;font-weight:700;box-shadow:0 1px 5px #3338;line-height:25px;width:29px;height:29px}.label{background:#fff;color:#152b36;border:1px solid #a5b2b9;border-radius:4px;padding:2px 5px;font-size:12px;white-space:nowrap}.notice{background:#f0f5f8;padding:9px;border-radius:6px;font-size:12px;margin-top:8px}input[type=text]{padding:8px;border:1px solid #cbd2d9;border-radius:6px;width:100%}@media(max-width:750px){.layout{display:flex;flex-direction:column;height:auto}.side{max-height:46vh}.mapwrap{height:54vh;min-height:350px}}
+
+.customer-address-label{background:rgba(255,255,255,.92);border:1px solid #9aadb5;border-radius:4px;color:#142c3b;font-weight:600;font-size:11px;box-shadow:none}.customer-address-label:before{display:none}.addr-number{background:#fff;border:1px solid #5c7380;border-radius:5px;color:#182c38;font:700 12px system-ui;padding:2px 4px;white-space:nowrap;box-shadow:0 1px 3px #0005;display:inline-block;transform:translate(-50%,-50%)}
+.addr-number:hover{background:#e7f5ff;border-color:#286b9a;cursor:pointer}.addr-help{font-size:12px;color:#5b6872;margin-top:8px}
+
+#secureGate{position:fixed;inset:0;z-index:99999;background:#f5f6f7;display:flex;align-items:center;justify-content:center;padding:20px}
+#secureGate .loginCard{width:min(420px,100%);background:white;padding:24px;border:1px solid #dce2e8;border-radius:12px;box-shadow:0 6px 32px #0001}
+#secureGate input{width:100%;padding:10px;margin:6px 0 12px;border:1px solid #cbd2d9;border-radius:7px}
+#secureGate button{width:100%;margin-top:7px}
+#secureGate .err{color:#a12424;white-space:pre-wrap;font-size:12px;margin-top:10px}
+
+.route-compare{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}.route-compare button.active{background:#275c76;color:white}.route-metrics{font-size:12px;line-height:1.6;color:#425767}.route-warning{background:#fff6df;border:1px solid #e9d19a;padding:8px;border-radius:7px;font-size:12px;margin-top:8px}
+
+#printSheet{display:none}
+@media print{
+ @page{size:letter portrait;margin:0.45in}
+ body{background:#fff!important;color:#111!important;font:10pt Arial,sans-serif}
+ body>*:not(#printSheet){display:none!important}
+ #printSheet{display:block!important}
+ #printSheet h1{font-size:18pt;margin:0 0 4pt}
+ #printSheet .print-meta{font-size:9pt;color:#444;margin:0 0 12pt}
+ #printSheet table{width:100%;border-collapse:collapse;table-layout:fixed}
+ #printSheet th,#printSheet td{border:1px solid #999;padding:5pt 6pt;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+ #printSheet th{background:#e9edf0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ #printSheet tr{break-inside:avoid;page-break-inside:avoid}
+ #printSheet .col-order{width:7%}#printSheet .col-check{width:7%}#printSheet .col-address{width:42%}#printSheet .col-status{width:16%}#printSheet .col-side{width:13%}#printSheet .col-notes{width:15%}
+ #printSheet .print-foot{margin-top:10pt;font-size:8pt;color:#555}
+}
+
+#accountSettings{display:none;position:fixed;inset:0;background:#0009;z-index:5000;align-items:center;justify-content:center;padding:16px}
+#accountSettings .settingsCard{background:#fff;color:#26313b;width:min(440px,100%);padding:20px;border-radius:12px;box-shadow:0 12px 40px #0005}
+#accountSettings label{display:block;margin:10px 0}
+#accountSettings input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd2d9;border-radius:6px}
+.pin-color-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}.pin-color-grid label{font-size:12px;margin:5px 0!important;display:flex!important;flex-direction:column;gap:2px}.pin-color-grid input[type=color]{height:33px!important;padding:2px!important;width:100%!important;cursor:pointer}#accountSettings .settingsCard{max-height:92vh;overflow-y:auto}#accountSettings .settingsActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#passwordChangeStatus{font-size:13px;margin-top:8px;min-height:18px}
+
+/* Bulk pickup selection — overlay does not modify the original GPX */
+.bulk-tools{position:absolute;top:12px;left:55px;right:12px;z-index:850;display:flex;gap:5px;align-items:center;flex-wrap:wrap;pointer-events:none}
+.bulk-tools>*{pointer-events:auto}.bulk-tools button{background:#fff;box-shadow:0 1px 6px #0002;padding:7px 9px;font-weight:600}
+.bulk-tools button.bulk-active{background:#164d6b;color:#fff;border-color:#164d6b}
+.bulk-tools button.bulk-danger{background:#a62424;color:#fff;border-color:#a62424}
+.bulk-tools .bulk-count{background:#fff;padding:8px 10px;border:1px solid #cbd2d9;border-radius:7px;box-shadow:0 1px 6px #0002;font-weight:700}
+.bulk-tools .bulk-help{background:#fffef0;border:1px solid #d4d1b4;padding:7px 9px;border-radius:6px;font-size:12px;max-width:350px}
+.bulk-highlight{pointer-events:none}
+@media(max-width:750px){.bulk-tools{left:10px;right:10px;top:7px}.bulk-tools button{padding:5px 7px;font-size:12px}.bulk-tools .bulk-help{flex-basis:100%}}
+
+/* Find Missing Houses: provisional address records, separate from customer pickups. */
+.missing-status{font-size:12px;line-height:1.45;background:#f7fafb;border:1px solid #dbe4e9;padding:9px;border-radius:7px;margin:9px 0}
+.missing-result{padding:9px 0;border-bottom:1px solid #e2e8f0}
+.missing-result:last-child{border-bottom:none}
+.missing-result .missing-addr{font-weight:700;overflow-wrap:anywhere}
+.missing-result .missing-source{font-size:11px;color:#64748b;margin:4px 0}
+.missing-result .row{margin-top:5px;gap:5px}
+.missing-result button{font-size:11px;padding:6px 8px}
+.missing-marker{background:var(--missing-pin-color,#facc15);border:2px solid #8b5b06;color:#2d2100;border-radius:50%;width:18px;height:18px;font:900 12px/14px system-ui;text-align:center;box-shadow:0 1px 5px #0005;cursor:pointer}
+.missing-marker:hover{background:#fde68a;transform:scale(1.15)}
+.missing-pagination{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.missing-pagination span{font-size:12px;color:#52616d}
+.missing-totals{font-size:12px;margin:5px 0;color:#4e5e6b}
+
+/* Keep the map uncluttered: tools open from a single dropdown. */
+.bulk-tools{right:auto;max-width:calc(100% - 70px);align-items:flex-start}
+.bulk-tools #toggleMapTools{white-space:nowrap;background:#fff;box-shadow:0 2px 9px #0003}
+.map-tool-actions{display:flex;gap:5px;flex-wrap:wrap;align-items:center;background:rgba(248,250,252,.97);border:1px solid #cbd5e1;border-radius:9px;padding:7px;box-shadow:0 4px 16px #0003;max-width:min(740px,calc(100vw - 110px))}
+.map-tool-actions[hidden]{display:none!important}
+.map-tool-actions>*{pointer-events:auto}
+.sidebar-toggle{position:absolute;z-index:850;bottom:55px;left:12px;background:white;box-shadow:0 2px 9px #0003;font-weight:600}
+.layout.sidebar-closed{grid-template-columns:minmax(0,1fr)}
+.layout.sidebar-closed .side{display:none}
+@media(max-width:750px){.layout.sidebar-closed .mapwrap{height:calc(100vh - 100px);min-height:450px}.bulk-tools{max-width:calc(100% - 20px)}.map-tool-actions{max-width:calc(100vw - 25px)}.sidebar-toggle{bottom:55px;left:10px}}
+</style><style id="sat-picture-styles">.sat-picture-grid{display:grid;gap:10px;margin-top:8px}.sat-picture-grid label{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:13px}.sat-picture-grid label input{grid-column:1/-1;width:100%;accent-color:#237799}.sat-picture-grid output{font-variant-numeric:tabular-nums;font-weight:600}.rb-imagery-tiles{will-change:filter}</style><style id="rb-upgrade-style">
+.rb-fold-header{display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;width:100%;border:0;background:transparent;color:inherit;padding:1px 0 6px;text-align:left;font:inherit;font-weight:700}
+.rb-fold-header:hover{color:#116d90}.rb-fold-header:focus-visible{outline:2px solid #0891b2;outline-offset:3px}
+.rb-fold-body[hidden]{display:none!important}.rb-fold-header .rb-fold-count{font-size:11px;font-weight:500;color:#64748b}.rb-fold-header .rb-fold-arrow{font-size:14px}
+.rb-dump-marker{display:flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #26313b,0 2px 6px #000a;color:white;font-weight:900;font-size:15px}
+.rb-dump-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid #e2e8f0;padding:5px 0}.rb-dump-row button{padding:3px 6px}
+body.rb-clean-view .missing-marker{width:15px;height:15px;border-radius:50%;background:var(--missing-pin-color,#facc15);border:2px solid #1f2937;color:#172033;font-size:12px;line-height:12px;font-weight:900;box-shadow:0 0 0 1px #fff;display:flex;align-items:center;justify-content:center}
+body.rb-review-view .missing-marker{box-shadow:0 0 0 3px #fff,0 0 0 5px #eab308}
+</style></head><body><section id="printSheet" aria-hidden="true"></section><div id="demoBanner" style="background:#fff3c4;color:#543f00;padding:7px 12px;text-align:center;font-weight:700">DEMO MODE — Fictional sample customers • Changes reset on refresh • No private account access</div><div id="secureGate"><div class="loginCard" id="normalLoginCard"><h2>Route Builder — Demo Login</h2><p class="small">This is a separate, protected copy of the customer routes. Your edits are temporary and reset when you refresh or leave the demo.</p><div style="display:none"><label>Supabase project URL<input id="sbUrl" placeholder="https://your-project.supabase.co" autocomplete="off"></label><label>Supabase publishable / anon key<input id="sbKey" placeholder="sb_publishable_..." autocomplete="off"></label></div><label>Demo username<input id="loginEmail" type="email" autocomplete="username" placeholder="you@example.com"></label><label>Password<input id="loginPass" type="password" autocomplete="off"></label><button class="primary" id="loginBtn">Enter Demo</button><a href="index.html" style="display:block;text-align:center;margin-top:10px">Back to Master Login</a><button id="setupBtn" style="display:none">Save project settings</button><p class="small"><b>Demo login:</b> Use the credentials shared privately by the owner. </p><p id="loginError" class="err"></p><p class="small">Only approved accounts can access the database. Do not put a service-role or secret key here.</p></div><div class="loginCard" id="resetPasswordCard" style="display:none"><h2>Set a new password</h2><p class="small">Enter your new Route Builder password below.</p><label>New password<input id="newPassword" type="password" autocomplete="new-password" minlength="6"></label><label>Confirm new password<input id="confirmPassword" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="saveNewPassword" type="button">Save new password</button><p id="resetPasswordError" class="err" role="status"></p></div></div><header><div><h1>Route Builder</h1><span class="small">Personal route library • Residential and commercial modes</span><div class="row" style="margin-top:8px"><label for="truckMode"><b>Operating mode</b></label><select id="truckMode"><option value="residential">Residential Side Loader</option><option value="commercial">Commercial Front Loader</option></select></div></div><div class="row"><button id="importBtn">Import GPX files</button><input id="file" type="file" accept=".gpx,application/gpx+xml" multiple hidden><button id="accountSettingsBtn" type="button">Account settings</button><button id="signOut" type="button">Sign out</button><button id="backup">Backup library</button><button id="restoreBtn">Restore backup</button><input id="restore" type="file" accept=".json" hidden></div></header><div id="accountSettings" role="dialog" aria-modal="true" aria-labelledby="accountSettingsTitle"><div class="settingsCard"><h2 id="accountSettingsTitle">Demo Display Settings</h2><p class="small">Customize your demo map. Master login changes are unavailable in demo mode.</p><section class="pin-settings"><h3 style="margin:12px 0 6px">Map pin colors</h3><p class="small">Customize colors for satellite view. Saved on this device and applied immediately.</p><div class="pin-color-grid"><label>Confirmed / permanent<input type="color" id="colorConfirmed" value="#db2777"></label><label>Needs review<input type="color" id="colorCandidate" value="#eab308"></label><label>Opposite-side pickup<input type="color" id="colorOpposite" value="#2563eb"></label><label>Excluded<input type="color" id="colorExcluded" value="#64748b"></label><label>Missing-house review<input type="color" id="colorMissing" value="#facc15"></label><label>Leave route to dump<input type="color" id="colorDumpLeave" value="#8b5cf6"></label><label>Dump site<input type="color" id="colorDumpSite" value="#f97316"></label><label>Resume collection<input type="color" id="colorDumpResume" value="#14b8a6"></label></div><button type="button" id="resetPinColors">Restore default colors</button></section><hr style="border:0;border-top:1px solid #ddd;margin:14px 0"><b>Address display (close-up satellite view)</b><p class="small">Clean is the default: smaller pins, less clutter. Numbers shows all numbered pins. Review makes missing-address markers more obvious.</p><select id="rbAddressDisplayMode" style="width:100%;margin:5px 0 14px"><option value="clean">Clean view (default)</option><option value="numbers">Numbers view</option><option value="review">Review view</option></select><hr style="border:0;border-top:1px solid #ddd;margin:12px 0"><b>Change login password</b><label>Current password<input id="currentAccountPassword" type="password" autocomplete="off"></label><label>New password<input id="newAccountPassword" type="password" autocomplete="new-password" minlength="6"></label><label>Confirm new password<input id="confirmAccountPassword" type="password" autocomplete="new-password" minlength="6"></label><div class="settingsActions"><button class="primary" id="changeAccountPassword" type="button">Change password</button><button id="closeAccountSettings" type="button">Cancel</button></div><div id="passwordChangeStatus" role="status" aria-live="polite"></div></div></div><main class="layout" id="appLayout"><aside class="side" id="optionsSidebar"><div class="panel"><b>Routes</b><div class="row" style="margin-top:9px"><select id="routes" style="flex:1"></select><button id="deleteRoute">Delete</button></div><div class="small" id="stats" style="margin-top:7px"></div><div class="row" style="margin-top:8px"><button id="hideAllPins" type="button">Hide all pins</button><button id="showAllPins" type="button">Show all pins</button><button id="saveNow" type="button" class="primary">Save changes</button><button id="undoBtn" type="button" disabled>↶ Undo</button><button id="redoBtn" type="button" disabled>↷ Redo</button></div><div class="small" id="saveStatus">Changes save automatically; use Backup library for a full copy.</div><div class="row" style="margin-top:9px"><label><input id="showTrack" type="checkbox" checked> Show GPX track</label></div></div><div class="panel" id="commercialPanel" style="display:none"><b>Commercial Front Loader</b><p class="small">Commercial dumpsters and restaurant dumpsters. The front loader has <b>no right-side pickup requirement</b>. <b>Stops follow the order you place pins:</b> first pin = Stop 1, second = Stop 2, and so on. Change the order manually in the stop list when needed. The dotted green connector is a stop-order guide, <b>not a road navigation route</b>. Potential addresses from a GPX scan still require approval.</p><div class="row"><label>Service type <select id="commercialService"><option>Commercial dumpster</option><option>Restaurant dumpster</option></select></label></div><div class="row" style="margin-top:8px"><label>Container size <select id="containerSize"><option>2-yard</option><option>4-yard</option><option>6-yard</option><option>8-yard</option><option>Compactor</option><option>Unknown</option></select></label><label>Containers at stop <input id="containerCount" type="number" min="1" value="1" style="width:76px"></label></div><label style="display:block;margin-top:8px">Access / service notes<input id="commercialNotes" type="text" placeholder="Gate, enclosure, approach, clearance…"></label><label style="display:block;margin:10px 0"><input type="checkbox" id="showCommercialSequence"> Show pin-order guide (dotted green)</label><div class="notice">Commercial mode keeps its own route and stop records. Confirm truck access, backing, clearance, and service instructions before driving. Road optimization is not yet a verified front-loader routing engine.</div></div><div class="panel" id="dumpEventPanel"><b>Dump trips &amp; return points</b><p class="small">Mark where this truck leaves the route, dumps, and resumes collection. These are not customer stops and do not change pickup numbering.</p><div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" data-dump-place="leave">↗ Leave route</button><button type="button" data-dump-place="site">▣ Dump site</button><button type="button" data-dump-place="resume">↩ Resume route</button><button type="button" id="dumpPlaceCancel" disabled>Cancel</button></div><div class="small" id="dumpPlaceStatus" role="status">Choose a marker type, then click the map to place it.</div><div id="dumpEventList" class="small" style="margin-top:8px"></div></div><div class="panel" id="gpxAddressPanel"><b id="gpxScanTitle">Find additional addresses along GPX</b><p class="small" id="gpxScanDescription">Residential: look for possible pickups on the right side of each driven pass. These are review candidates, not confirmed customers.</p><button class="wide" id="setFirstPickup" type="button">Set first service stop on map (optional)</button><div id="firstPickupStatus" class="small" style="margin:6px 0">Optional: mark where collection starts to skip travel before the route.</div><label class="small" for="scanRange">Address search distance from recorded GPX</label><select id="scanRange" class="wide" style="margin:5px 0 8px"><option value="45">Standard — 45 m (148 ft)</option><option value="75">Wider review — 75 m (246 ft)</option><option value="110">Deep review — 110 m (361 ft)</option></select><label class="small" style="display:block;margin:8px 0"><input type="checkbox" id="scanBothGis"> Deep scan: cross-check Arkansas GIS + Benton County GIS</label><div class="small">Deep search checks a wider strip and an additional county address source. This can find missed houses, but may also include nearby streets or buildings that are not customers. New finds stay yellow until you approve them. Some addresses are absent from both databases.</div><button class="wide" id="scanGPXAddresses" type="button">Find more right-side addresses along GPX</button><div id="scanStatus" class="small" role="status" style="margin:8px 0">GPX import restores only the customer waypoints actually saved in the file. Scan to look for additional possible stops.</div></div><div class="panel" id="residentialOptimizerPanel"><b>Residential right-side optimizer (preview)</b><p class="small">For residential Side Loader routes only. The original GPX stays unchanged. This uses public road geometry and estimated pickup side; review the proposal before driving.</p><button class="primary wide" id="optimizeRight">Optimize right-side pickups</button><div class="route-compare"><button type="button" data-view="original">Original</button><button type="button" data-view="both" class="active">Compare both</button><button type="button" data-view="optimized">Optimized</button></div><div id="optimizeMetrics" class="route-metrics">Import a GPX and customer stops to compare; or start with customer addresses alone.</div><div id="optimizeReview" class="route-warning">Road data and address placement may be incomplete. This is a planning aid, not verified truck navigation. Confirm one-ways, turns, clearances, and stop sides.</div></div><div class="panel" id="replayPanel"><b>GPX route replay</b><div class="small" style="margin-top:6px">Watch the recorded route from start to finish. Speed controls replay, not actual driving speed.</div><div class="row" style="margin-top:9px"><button id="replayRestart" type="button">↺ Restart</button><button id="replayPlay" type="button">▶ Play</button><select id="replaySpeed" aria-label="Playback speed"><option value="1">1×</option><option value="2">2×</option><option value="5" selected>5×</option><option value="10">10×</option><option value="20">20×</option><option value="50">50×</option></select></div><input id="replaySeek" aria-label="Replay position" type="range" min="0" max="1000" value="0" style="width:100%;margin-top:12px"><div class="row" style="justify-content:space-between"><span class="small" id="replayProgress">0% • 0.0 mi</span><label class="small"><input type="checkbox" id="replayFollow" checked> Follow marker</label></div><div class="small" id="replayNote">Replay uses GPX point order. It does not infer actual travel time.</div></div><div class="panel" id="rbSearchPanel"><b>Find a road or customer address</b><p class="small" style="margin:6px 0">Search the saved stops on this route. Click a result to jump to its pin and edit the customer.</p><input id="rbSearchInput" type="search" placeholder="e.g. Silver Leaf or 431 Main St" autocomplete="off" style="width:100%;padding:9px;border:1px solid #b8c5cf;border-radius:7px"><div class="row" style="margin-top:8px"><button type="button" id="rbSearchGo" class="primary">Search route</button><button type="button" id="rbSearchClear">Clear highlight</button></div><div id="rbSearchSummary" class="small" role="status" style="margin:8px 0">Search the selected route's customer addresses.</div><div id="rbSearchResults" style="max-height:280px;overflow-y:auto"></div><div class="small" style="margin-top:8px">Cyan shows matching pins and only short nearby GPX segments, not the full road. Exact street geometry requires named road data. No online address search is performed.</div></div><div class="panel"><b>Map layers</b><div class="row" style="margin-top:8px"><select id="base" class="wide"><option value="sat">Satellite (Esri)</option><option value="street">Street (Esri)</option><option value="topo">Topographic (Esri)</option><option value="osm">OpenStreetMap roads (online site)</option></select></div><label style="display:block;margin-top:9px"><input type="checkbox" id="labels" checked> Road names over satellite</label><div class="row" style="margin-top:9px"><label class="small" for="rbTrackColor">GPX route line color</label><input type="color" id="rbTrackColor" value="#286b9a" title="Choose GPX track line color" style="width:48px;height:32px;padding:2px"></div><label class="small" style="display:block;margin:9px 0">GPX line visibility <output id="rbTrackOpacityValue">75%</output><input type="range" id="rbTrackOpacity" min="15" max="100" step="5" value="75" style="width:100%"></label><label class="small" style="display:block;margin:9px 0">Satellite road-name overlay visibility <output id="rbRoadOverlayValue">45%</output><input type="range" id="rbRoadOverlay" min="0" max="100" step="5" value="45" style="width:100%"></label><button type="button" id="rbMapColorReset">Reset line colors</button><div class="notice">Zoom past level 18 to enlarge the last available satellite tiles rather than display blank squares. New street names and addresses still depend on the provider's data. In local HTML previews, OpenStreetMap road tiles are blocked by its server policy; this app automatically uses Esri Street instead. OpenStreetMap roads can be selected when Route Builder is hosted on HTTPS (such as GitHub Pages). If those tiles fail, Esri Street loads automatically.</div></div><div class="panel" id="satellitePictureSettings"><b>Satellite picture settings</b><p class="small" style="margin:6px 0 10px">Make roofs, driveways, and roads easier to see. These controls affect only the satellite picture—not pins, labels, or the GPX track.</p><div class="sat-picture-grid">
+<label>Brightness <output id="satBrightValue">100%</output><input id="satBright" type="range" min="70" max="145" value="100" step="5"></label>
+<label>Contrast <output id="satContrastValue">100%</output><input id="satContrast" type="range" min="75" max="180" value="100" step="5"></label>
+<label>Color strength <output id="satColorValue">100%</output><input id="satColor" type="range" min="60" max="175" value="100" step="5"></label>
+</div><div class="row" style="margin-top:9px"><button type="button" id="satPictureReset">Reset picture</button><button type="button" id="satPicturePreset">Make clearer</button></div><div class="notice">Higher contrast can help the picture look clearer, but it cannot reveal details that the imagery provider never captured. Very close zoom may still look blurry.</div></div><div class="panel"><b>House numbers — Arkansas GIS</b><label style="display:block;margin-top:9px"><input type="checkbox" id="houseNumbers" checked> Show house numbers on map</label><div class="row" style="margin-top:8px"><button id="reloadNumbers">Refresh numbers</button><button id="toggleStopLabels">Show close-up labels: Off</button></div><div class="addr-help">Your own entered/imported customer addresses appear beside confirmed pins at zoom 18 or closer using the address-label toggle. Pins shrink when zoomed out. Arkansas GIS labels are a separate optional layer.</div><div id="addressStats" class="addr-help">House numbers turn on automatically at zoom 17+. Click a number to add its customer pin. You can also toggle House Numbers on the map. The GPX scanner is separate and unchanged. Customer address labels are placed opposite the house side of the nearest GPX road; use Label to adjust.</div><div class="notice">Uses Arkansas public address-point records, not Google Maps. Coverage may be incomplete, especially in new developments. This is an online layer; no bulk address download is included.</div></div><div class="panel" id="missingHousePanel"><b>Find Missing Houses — Silver Leaf & other neighborhoods</b>
+<p class="small">Compare the map area with Arkansas GIS, Benton County addresses, and available OpenStreetMap address tags. New addresses are saved for review; they do <b>not</b> become customer pickups automatically.</p>
+<button type="button" class="primary wide" id="findMissingHouses">Find Missing Houses in Map View</button><div class="missing-area-controls" style="margin-top:10px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc">
+<b>Select a neighborhood to add pickups</b><p class="small">Click Draw freehand, then press and hold the mouse while tracing around the houses. Release to close the outline and select saved, unignored yellow review addresses—not existing stops.</p>
+<div class="row" style="gap:6px;flex-wrap:wrap"><button type="button" id="missingDrawArea">✎ Draw freehand</button><button type="button" id="missingClearArea" disabled>Clear boundary</button></div>
+<div id="missingAreaCount" class="small" role="status" style="margin:8px 0">No area selected.</div>
+<button type="button" class="primary wide" id="missingAddArea" disabled>Add selected houses to route (0)</button>
+<p class="small">All new stops are added in one operation, which you can Undo. Check address accuracy and curb/service side afterward.</p>
+</div>
+<div class="row" style="margin-top:8px"><label class="small"><input type="checkbox" id="showMissingPins"> Show yellow review pins (off by default)</label><label class="small"><input type="checkbox" id="showIgnoredMissing"> Show ignored addresses</label></div>
+<div id="missingStatus" class="missing-status" role="status">Zoom to Silver Leaf or another neighborhood (level 16+) and click Find Missing Houses. An internet connection is needed.</div>
+<div id="missingTotals" class="missing-totals">No address comparison completed for this route yet.</div>
+<div class="missing-pagination"><button type="button" id="missingPrev">Previous</button><span id="missingPage">No candidates</span><button type="button" id="missingNext">Next</button></div>
+<div id="missingList"></div>
+<div class="small" style="margin-top:10px">Sources: Arkansas GIS, Benton County GIS, © OpenStreetMap contributors (ODbL). Google Maps addresses are not copied. Some houses are absent from all sources; verify each address and pickup position. This is an on-demand scan, not continuous background synchronization.</div>
+</div><div class="panel"><b id="stopListTitle">Customer stops</b><p class="small" id="stopListIntro">Click a house or roadside pickup point to add a numbered pin. Addresses are looked up when available, not guessed.</p><div class="row"><button id="addCustomer">+ Add address</button><button id="importAddresses">Import address CSV</button><input id="addressFile" type="file" accept=".csv,text/csv" hidden><button id="exportCSV">Export CSV</button><button id="printStops" type="button">Print stop list</button><button id="exportGPX">Export GPX</button><button id="clearStops">Clear pins</button><button id="resetScannedPins" type="button" title="Allow previously cleared or deleted pins to be discovered again">Reset deleted-pin exclusions</button></div><div class="row" style="margin-top:8px"><button id="confirmAll" type="button" class="primary">Make remaining stops permanent</button><button id="showOnlyUnconfirmed" type="button">Show unconfirmed only</button></div><div class="small">Permanent means confirmed for this route; you can still edit or exclude stops. Gray Stone Circle: mark both-side curb placement manually on those stops.</div><div class="notice">For manual entries, search the address or place the pin yourself. CSV columns: Address, Latitude, Longitude (coordinates optional). Unmatched addresses stay in a review list.</div><div class="small" style="margin:8px 0">Drag a stop to reorder it, or enter a stop number. Changes affect this route's editable stop order; the imported GPX track itself stays unchanged.</div><div id="stops"></div></div></aside><section class="mapwrap"><div id="map"></div>
+<button type="button" id="toggleSidebar" class="sidebar-toggle" aria-controls="optionsSidebar" aria-expanded="true" title="Hide or show the route options panel">☰ Hide route options</button>
+<div class="bulk-tools" role="toolbar" aria-label="Select customer pins">
+<button type="button" id="toggleMapTools" aria-controls="mapToolActions" aria-expanded="false" title="Open map pin and selection tools">⚙ Map tools ▾</button>
+<div id="mapToolActions" class="map-tool-actions" hidden>
+<button type="button" id="mapHouseNumbers" title="Show or hide clickable Arkansas GIS house numbers at street zoom (17+)">⌂ House Numbers: On</button>
+<span class="bulk-pin-legend" title="Confirmed customer stops show pink on the map" style="font-size:11px;font-weight:600;white-space:nowrap;color:#831843;background:#fce7f3;border-radius:6px;padding:4px 6px">● Confirmed: Pink</span> <button type="button" id="bulkCircle" title="Click and drag on the map to draw a circle around pins">◯ Circle</button>
+<button type="button" id="bulkSingle" title="Select or deselect individual pins">☑ Single pins</button>
+<button type="button" id="bulkCancel" hidden>Cancel drawing</button>
+<span class="bulk-count" id="bulkCount">0 selected</span>
+<button type="button" id="bulkDelete" class="bulk-danger" disabled>Delete selected</button>
+<button type="button" id="bulkClear" disabled>Clear selection</button>
+<span id="bulkHelp" class="bulk-help" hidden></span>
+</div></div>
+<div class="hint" id="status">Loading satellite map…</div></section></main><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>
+
+// Compact map tools and optional route-options sidebar; no impact on saved routes or GPX logic.
+(function installCollapsibleControls(){
+  const menu=document.getElementById('toggleMapTools'),actions=document.getElementById('mapToolActions');
+  const sidebarButton=document.getElementById('toggleSidebar'),layout=document.getElementById('appLayout');
+  function setMenu(open){actions.hidden=!open;menu.setAttribute('aria-expanded',String(open));menu.textContent=open?'⚙ Map tools ▴':'⚙ Map tools ▾'}
+  menu.addEventListener('click',()=>setMenu(actions.hidden));
+  function setSidebar(open){layout.classList.toggle('sidebar-closed',!open);sidebarButton.textContent=open?'☰ Hide route options':'☰ Show route options';sidebarButton.setAttribute('aria-expanded',String(open));
+    try{sessionStorage.setItem('routebuilder_sidebar_open',open?'1':'0')}catch(e){}
+    setTimeout(()=>{try{if(map&&typeof map.invalidateSize==='function')map.invalidateSize()}catch(e){}},90)
+  }
+  sidebarButton.addEventListener('click',()=>setSidebar(layout.classList.contains('sidebar-closed')));
+  try{if(sessionStorage.getItem('routebuilder_sidebar_open')==='0')setSidebar(false)}catch(e){}
+  // A selection starts with the toolbar open, so leave it visible while the user works.
+})();
+
+const bundled=[];
+const KEY='routebuilder_master_v3';sessionStorage.removeItem(KEY);let library=[];try{library=JSON.parse(sessionStorage.getItem(KEY)||'[]')}catch(e){}if(!Array.isArray(library))library=[];
+if(!library.length)library=[{id:'empty-route',name:'My first route (import GPX)',points:[],stops:[]}];
+let activeMode=sessionStorage.getItem('routebuilder_mode')||'residential';let active=library[0].id;library.forEach(r=>{if(!r.mode)r.mode='residential'});if(!library.some(r=>r.mode===activeMode)){const seed={id:'route-'+activeMode+'-start',name:activeMode==='commercial'?'My first commercial route':'My first residential route',points:[],stops:[],mode:activeMode};library.push(seed);active=seed.id}else{active=(library.find(r=>r.mode===activeMode)||library[0]).id}let map, track, comparisonTrack=null, stopLayer, showStopLabels=false, baseLayer, roadLabels, placingStop=null, addressLayer=null, addressFetchId=0, addressTimer=null;const $=id=>document.getElementById(id);const current=()=>library.find(x=>x.id===active)||library.find(x=>x.mode===activeMode)||library[0];const modeRoutes=()=>library.filter(r=>(r.mode||'residential')===activeMode);const save=()=>{try{sessionStorage.setItem(KEY,JSON.stringify(library));window.scheduleCloudSave?.();const st=$('saveStatus');if(st)st.textContent='Saved in this browser • Cloud sync may still be pending'}catch(e){setStatus('Browser storage is full. Export a library backup to preserve your routes.')}};
+// Remember intentional removals separately from the stops list so repeated GIS scans do not resurrect them.
+function removedPointKey(lat,lon){return Number.isFinite(lat)&&Number.isFinite(lon)?`${Math.round(lat*1e5)}:${Math.round(lon*1e5)}`:null}
+function rememberRemovedStop(route,stop){const key=removedPointKey(stop?.lat,stop?.lon);if(!key)return;if(!Array.isArray(route.suppressedScanPoints))route.suppressedScanPoints=[];if(!route.suppressedScanPoints.includes(key))route.suppressedScanPoints.push(key)}
+function recordStopDeletion(route,index){const stop=route.stops[index];if(!stop)return;rememberRemovedStop(route,stop);route.stops.splice(index,1)}
+let undoStack=[],redoStack=[],historyBusy=false;
+function cloneLibrary(){return JSON.parse(JSON.stringify(library))}
+function rememberChange(){if(historyBusy)return;undoStack.push({library:cloneLibrary(),active});if(undoStack.length>80)undoStack.shift();redoStack=[];updateHistoryButtons()}
+function updateHistoryButtons(){const u=$('undoBtn'),r=$('redoBtn');if(u)u.disabled=!undoStack.length;if(r)r.disabled=!redoStack.length}
+function applyHistory(snapshot){historyBusy=true;library=JSON.parse(JSON.stringify(snapshot.library));active=snapshot.active;save();refresh();updateHistoryButtons();historyBusy=false}
+function undoChange(){if(!undoStack.length)return;redoStack.push({library:cloneLibrary(),active});const prev=undoStack.pop();applyHistory(prev);setStatus('Last change undone.')}
+function redoChange(){if(!redoStack.length)return;undoStack.push({library:cloneLibrary(),active});const next=redoStack.pop();applyHistory(next);setStatus('Change restored.')}
+$('undoBtn').onclick=undoChange;$('redoBtn').onclick=redoChange;
+function setStatus(t){$('status').textContent=t}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+// Route search and map appearance. All lookup is local to the selected route; no customer data leaves this page.
+const rbDisplayDefaults={trackColor:'#286b9a',trackOpacity:75,roadOpacity:45};
+let rbDisplay={...rbDisplayDefaults};
+try{const v=JSON.parse(localStorage.getItem('rbMapLineAppearance')||'null');if(v&&typeof v==='object'){
+ if(/^#[0-9a-fA-F]{6}$/.test(v.trackColor||''))rbDisplay.trackColor=v.trackColor;
+ for(const k of ['trackOpacity','roadOpacity'])if(Number.isFinite(Number(v[k]))&&Number(v[k])>=0&&Number(v[k])<=100)rbDisplay[k]=Number(v[k]);
+}}catch(e){}
+function rbApplyLineStyles(){
+ if(track&&track.setStyle)track.setStyle({color:rbDisplay.trackColor,opacity:rbDisplay.trackOpacity/100});
+ if(roadLabels&&roadLabels.setOpacity)roadLabels.setOpacity(rbDisplay.roadOpacity/100);
+}
+function rbAppearanceRender(){
+ $('rbTrackColor').value=rbDisplay.trackColor;$('rbTrackOpacity').value=rbDisplay.trackOpacity;$('rbTrackOpacityValue').textContent=rbDisplay.trackOpacity+'%';
+ $('rbRoadOverlay').value=rbDisplay.roadOpacity;$('rbRoadOverlayValue').textContent=rbDisplay.roadOpacity+'%';
+ rbApplyLineStyles();try{localStorage.setItem('rbMapLineAppearance',JSON.stringify(rbDisplay))}catch(e){}
+}
+$('rbTrackColor').addEventListener('input',e=>{rbDisplay.trackColor=e.target.value;rbAppearanceRender()});
+$('rbTrackOpacity').addEventListener('input',e=>{rbDisplay.trackOpacity=Number(e.target.value);rbAppearanceRender()});
+$('rbRoadOverlay').addEventListener('input',e=>{rbDisplay.roadOpacity=Number(e.target.value);rbAppearanceRender()});
+$('rbMapColorReset').onclick=()=>{rbDisplay={...rbDisplayDefaults};rbAppearanceRender()};
+rbAppearanceRender();
+let rbSearchMarkers=null,rbSearchTrack=null,rbSearchMatches=[],rbSearchForRoute=null;
+function rbSearchRemoveHighlight(){if(!map)return;if(rbSearchMarkers)map.removeLayer(rbSearchMarkers);if(rbSearchTrack)map.removeLayer(rbSearchTrack);rbSearchMarkers=null;rbSearchTrack=null;}
+function rbSearchNormalize(text){return String(text||'').toLowerCase().replace(/\b(street|st)\b/g,'st').replace(/\b(avenue|ave)\b/g,'ave').replace(/\b(road|rd)\b/g,'rd').replace(/\b(drive|dr)\b/g,'dr').replace(/\b(circle|cir)\b/g,'cir').replace(/\b(trail|trl)\b/g,'trl').replace(/\b(boulevard|blvd)\b/g,'blvd').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()}
+function rbSearchHighlight(indices,zoom=false){
+ rbSearchRemoveHighlight();const r=current();if(!map)return;
+ const stops=indices.map(i=>({s:r.stops[i],i})).filter(x=>x.s&&Number.isFinite(x.s.lat)&&Number.isFinite(x.s.lon));
+ if(!stops.length)return;
+ rbSearchMarkers=L.layerGroup().addTo(map);
+ rbSearchTrack=L.layerGroup().addTo(map);
+ const points=r.points||[],segmentsDrawn=new Set();
+ for(const {s} of stops){
+  L.circleMarker([s.lat,s.lon],{radius:rbAddressDisplayMode==='numbers'?14:10,color:'#00e5ff',weight:2,opacity:.85,fillColor:'#00e5ff',fillOpacity:.04,interactive:false}).addTo(rbSearchMarkers);
+  // Highlight ONLY a small portion of the single closest recorded road segment.
+  // The old +/- 8 GPX-points expansion crossed intersections into unrelated streets.
+  // This is an approximate GPX proximity cue, not a street-name road network lookup.
+  if(points.length<2)continue;
+  const latScale=111195,lonScale=latScale*Math.cos(s.lat*Math.PI/180);
+  let nearest=null;
+  for(let k=1;k<points.length;k++){
+   const a=points[k-1],b=points[k];if(!a||!b)continue;
+   const ax=(a[1]-s.lon)*lonScale,ay=(a[0]-s.lat)*latScale;
+   const bx=(b[1]-s.lon)*lonScale,by=(b[0]-s.lat)*latScale;
+   const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+   if(len2<0.01)continue;
+   const t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/len2));
+   const dist2=(ax+t*dx)**2+(ay+t*dy)**2;
+   if(!nearest||dist2<nearest.dist2)nearest={k,t,dist2,length:Math.sqrt(len2),a,b};
+  }
+  // If there is no road close enough to the pin, show the pin only: don't
+  // guess at a roadway that might belong to the neighboring block.
+  if(!nearest||nearest.dist2>42*42)continue;
+  const {k,t,length,a,b}=nearest;
+  const half=10/length,t0=Math.max(0,t-half),t1=Math.min(1,t+half);
+  if((t1-t0)*length<0.5)continue;
+  const key=k+':'+Math.round(t0*50)+':'+Math.round(t1*50);
+  if(segmentsDrawn.has(key))continue;segmentsDrawn.add(key);
+  function along(v){return [a[0]+(b[0]-a[0])*v,a[1]+(b[1]-a[1])*v]}
+  L.polyline([along(t0),along(t1)],{color:'#00e5ff',weight:5,opacity:.9,interactive:false}).addTo(rbSearchTrack);
+ }
+ if(zoom){if(stops.length===1)map.setView([stops[0].s.lat,stops[0].s.lon],Math.max(map.getZoom(),18));else map.fitBounds(L.latLngBounds(stops.map(x=>[x.s.lat,x.s.lon])),{padding:[55,55],maxZoom:18});}
+}
+function rbSearchRun(){
+ const q=rbSearchNormalize($('rbSearchInput').value),r=current(),results=$('rbSearchResults');
+ results.textContent='';rbSearchRemoveHighlight();rbSearchForRoute=r.id;
+ if(!q){rbSearchMatches=[];$('rbSearchSummary').textContent='Enter an address, street name, or stop number.';return;}
+ const tokens=q.split(' '),all=r.stops||[];
+ rbSearchMatches=[];
+ for(let i=0;i<all.length;i++){const addr=rbSearchNormalize(all[i].address);if((addr&&tokens.every(t=>addr.includes(t)))||(Number(q)===i+1&&/^\d+$/.test(q))||(q==='stop '+(i+1))){rbSearchMatches.push(i)}}
+ $('rbSearchSummary').textContent=rbSearchMatches.length?`${rbSearchMatches.length} matching stops. Cyan circles show matching stops; short cyan dashes mark the closest recorded GPX segment only.`:'No matching saved customer addresses on this route. Try a shorter street name.';
+ rbSearchHighlight(rbSearchMatches.slice(0,80),true);
+ for(const i of rbSearchMatches.slice(0,80)){
+  const s=all[i],b=document.createElement('button');b.type='button';b.style.cssText='display:block;text-align:left;width:100%;margin:3px 0;padding:7px;font-size:12px';
+  b.textContent=`Stop ${i+1} — ${s.address||'Address unavailable'}`;b.onclick=()=>{
+   rbSearchHighlight([i],true);if(!s.id)s.id='stop-'+Math.random().toString(36).slice(2,10);
+   selectedStopId=s.id;stopListFilter='all';stopListPage=Math.floor(i/STOP_PAGE_SIZE);renderStopList();
+   const side=$('appLayout');if(side.classList.contains('sidebar-closed'))$('toggleSidebar').click();
+   setTimeout(()=>{const card=document.getElementById('stop-card-'+s.id);if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.querySelector('[data-detail=address]')?.focus()}},80);
+   setStatus('Opened stop '+(i+1)+' for editing. The cyan highlight is temporary.');
+  };results.appendChild(b)
+ }
+ if(rbSearchMatches.length>80){const note=document.createElement('p');note.className='small';note.textContent=`Showing first 80 of ${rbSearchMatches.length} matches. Search a more specific address to narrow the list.`;results.append(note)}
+}
+$('rbSearchGo').onclick=rbSearchRun;
+$('rbSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter')rbSearchRun()});
+$('rbSearchClear').onclick=()=>{rbSearchRemoveHighlight();rbSearchMatches=[];$('rbSearchInput').value='';$('rbSearchResults').textContent='';$('rbSearchSummary').textContent='Search cleared.'};
+
+
+// Bulk-selection state lives only in the current browser session; deleted stops
+// go through the existing one-action undo and normal route save.
+let bulkMode=null,bulkVertices=[],bulkSelected=new Set(),bulkRouteId=null;
+let bulkGeometry=null,bulkHighlighter=null;
+function bulkEnsureRoute(){const r=current();if(bulkRouteId!==r.id){bulkMode=null;bulkVertices=[];bulkSelected.clear();bulkRouteId=r.id;if(map){if(bulkGeometry)map.removeLayer(bulkGeometry);if(bulkHighlighter)map.removeLayer(bulkHighlighter)}bulkGeometry=null;bulkHighlighter=null;}return r}
+function bulkDrawVisual(){
+ if(!map)return;
+ if(bulkGeometry)map.removeLayer(bulkGeometry);
+ bulkGeometry=null;
+ if(bulkMode==='circle'&&bulkVertices.length>=1){if(bulkVertices.length===2){bulkGeometry=L.circle(bulkVertices[0],{radius:map.distance(bulkVertices[0],bulkVertices[1]),color:'#0d6cba',weight:3,fillColor:'#0d6cba',fillOpacity:.12}).addTo(map)}else{bulkGeometry=L.circleMarker(bulkVertices[0],{radius:6,color:'#0d6cba',fillColor:'#0d6cba'}).addTo(map)}}
+ 
+ if(bulkHighlighter)map.removeLayer(bulkHighlighter);
+ bulkHighlighter=L.layerGroup().addTo(map);
+ const r=current();for(const idx of bulkSelected){const stop=r.stops[idx];if(!stop||!Number.isFinite(stop.lat)||!Number.isFinite(stop.lon))continue;
+ L.circleMarker([stop.lat,stop.lon],{radius:15,color:'#dc2626',weight:3,fillColor:'#f97316',fillOpacity:.35,interactive:false,className:'bulk-highlight'}).addTo(bulkHighlighter)}
+ $('bulkCount').textContent=bulkSelected.size.toLocaleString()+' selected';$('bulkDelete').disabled=!bulkSelected.size;$('bulkClear').disabled=!bulkSelected.size;
+ for(const [name,mode] of [['bulkCircle','circle'],['bulkSingle','single']])$(''+name).classList.toggle('bulk-active',bulkMode===mode);
+ $('bulkCancel').hidden=!bulkMode;
+ const help=bulkMode==='circle'?'Click and drag from the circle center out to its edge, then release to select pins.':
+ bulkMode==='single'?'Click pins to select or deselect them; map clicks will not add pins.':'';
+ $('bulkHelp').hidden=!help;$('bulkHelp').textContent=help;
+ if(map)map.getContainer().style.cursor=bulkMode?'crosshair':'';
+}
+function bulkCancelDrawing(){bulkMode=null;bulkDrawing=false;bulkVertices=[];if(map?.dragging)map.dragging.enable();bulkDrawVisual()}
+function bulkSetMode(mode){if(missingAreaMode)missingAreaReset(true);bulkEnsureRoute();bulkMode=bulkMode===mode?null:mode;bulkVertices=[];bulkDrawing=false;if(map?.dragging){if(bulkMode==='circle')map.dragging.disable();else map.dragging.enable()}bulkDrawVisual();if(bulkMode){map?.closePopup();setStatus(bulkMode==='circle'?'Circle selection: click and drag on the map to draw around pins.': 'Selection mode: '+mode+'. Original GPX remains unchanged.')} }
+function bulkSelectGeometry(shape){
+ const r=bulkEnsureRoute();let chosen=0;
+ for(let i=0;i<r.stops.length;i++){const stop=r.stops[i];if(!Number.isFinite(stop.lat)||!Number.isFinite(stop.lon))continue;if(shape(stop.lat,stop.lon)){bulkSelected.add(i);chosen++}}
+ bulkMode=null;bulkVertices=[];bulkDrawing=false;if(map?.dragging)map.dragging.enable();bulkDrawVisual();setStatus('Selected '+chosen+' pins in this area; '+bulkSelected.size+' total selected. Review before deleting.')
+}
+function bulkMapClick(latlng){
+ if(!bulkMode)return false;
+ if(bulkMode==='single')return true;
+ if(bulkMode==='circle')return true;
+ return false;
+}
+let bulkDrawing=false;
+// In circle mode, capture a drag gesture and temporarily disable map panning.
+function bulkStartCircle(e){if(bulkMode!=='circle'||!e.latlng)return;bulkDrawing=true;bulkVertices=[e.latlng];bulkDrawVisual();}
+function bulkMoveCircle(e){if(!bulkDrawing||bulkMode!=='circle'||!e.latlng)return;bulkVertices[1]=e.latlng;bulkDrawVisual();}
+function bulkEndCircle(e){if(!bulkDrawing||bulkMode!=='circle')return;bulkDrawing=false;if(e&&e.latlng)bulkVertices[1]=e.latlng;if(bulkVertices.length<2||map.distance(bulkVertices[0],bulkVertices[1])<8){bulkVertices=[];bulkDrawVisual();setStatus('Drag farther to draw a larger selection circle.');return}const center=bulkVertices[0],radius=map.distance(center,bulkVertices[1]);bulkSelectGeometry((lat,lon)=>map.distance(center,L.latLng(lat,lon))<=radius);}
+function bulkTogglePin(index){if(bulkMode!=='single')return false;if(bulkSelected.has(index))bulkSelected.delete(index);else bulkSelected.add(index);bulkDrawVisual();return true}
+$('bulkCircle').onclick=()=>bulkSetMode('circle');$('bulkSingle').onclick=()=>bulkSetMode('single');
+$('bulkCancel').onclick=bulkCancelDrawing;
+$('bulkClear').onclick=()=>{bulkSelected.clear();bulkMode=null;bulkVertices=[];bulkDrawVisual();setStatus('Selection cleared. No customer pins were deleted.')};
+$('bulkDelete').onclick=()=>{
+ const r=bulkEnsureRoute(),indices=[...bulkSelected].filter(i=>r.stops[i]).sort((a,b)=>b-a);
+ if(!indices.length)return;
+ if(!confirm('Delete '+indices.length+' selected customer pins from '+r.name+'? This will NOT delete the GPX track. Undo restores the entire selection.'))return;
+ rememberChange();for(const i of indices)recordStopDeletion(r,i);
+ bulkSelected.clear();bulkMode=null;bulkVertices=[];bulkDrawVisual();save();refresh();setStatus('Deleted '+indices.length+' selected pins. Click Undo to restore them.');
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(missingAreaMode)missingAreaReset();if(bulkMode)bulkCancelDrawing()}});
+
+function init(){if(typeof L==='undefined'){setStatus('Map library did not load. Connect to the internet and reopen this file in Edge.');return}map=L.map('map',{zoomControl:true}).setView([36.36,-94.31],13);missingAreaInstallFreehand();map.on('mousedown',bulkStartCircle);map.on('mousemove',bulkMoveCircle);map.on('mouseup',bulkEndCircle);map.on('mouseout',()=>{if(bulkDrawing)bulkEndCircle(null)});stopLayer=L.layerGroup().addTo(map);addressLayer=L.layerGroup().addTo(map);missingLayer=L.layerGroup().addTo(map);map.on('moveend zoomend',renderMissingPins);map.on('moveend zoomend',scheduleAddressLoad);map.on('zoomend',renderStopPins);map.on('moveend',renderStopPins);setBase();map.on('click',e=>{if(missingAreaMode||Date.now()<missingAreaIgnoreClickUntil)return;if(bulkMapClick(e.latlng))return;if(window.selectGPXStart){window.selectGPXStart(e.latlng);return}if(placingStop){rememberChange();placingStop.lat=e.latlng.lat;placingStop.lon=e.latlng.lng;placingStop.needsPin=false;placingStop=null;save();refresh();setStatus('Customer pin placed on the map.')}else addStop(e.latlng)});refresh();}
+const providers={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',street:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',topo:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png'};
+
+// Per-device display adjustments, applied to the aerial imagery layer only.
+const SAT_PICTURE_DEFAULTS={bright:100,contrast:100,color:100};
+let satPictureSettings={...SAT_PICTURE_DEFAULTS};
+try{const stored=JSON.parse(sessionStorage.getItem('rbSatellitePictureSettings')||'null');if(stored&&typeof stored==='object')for(const k of Object.keys(SAT_PICTURE_DEFAULTS)){const n=Number(stored[k]);if(Number.isFinite(n)&&n>=50&&n<=200)satPictureSettings[k]=n;}}catch(e){}
+function applySatellitePictureSettings(){
+ if(!baseLayer||!map)return;
+ const el=baseLayer.getContainer&&baseLayer.getContainer();
+ if(!el)return;
+ el.style.filter=$('base').value==='sat'?`brightness(${satPictureSettings.bright}%) contrast(${satPictureSettings.contrast}%) saturate(${satPictureSettings.color}%)`:'';
+}
+function updateSatellitePictureSettings(){
+ for(const [field,id] of [['bright','satBright'],['contrast','satContrast'],['color','satColor']]){
+  const input=$(id),output=$(id+'Value');if(!input)continue;
+  input.value=satPictureSettings[field];if(output)output.textContent=satPictureSettings[field]+'%';
+ }
+ applySatellitePictureSettings();
+ try{sessionStorage.setItem('rbSatellitePictureSettings',JSON.stringify(satPictureSettings));}catch(e){}
+}
+function setupSatellitePictureSettings(){
+ for(const [field,id] of [['bright','satBright'],['contrast','satContrast'],['color','satColor']]){
+  const el=$(id);if(!el)continue;
+  el.addEventListener('input',()=>{satPictureSettings[field]=Number(el.value);updateSatellitePictureSettings();});
+ }
+ $('satPictureReset').onclick=()=>{satPictureSettings={...SAT_PICTURE_DEFAULTS};updateSatellitePictureSettings()};
+ $('satPicturePreset').onclick=()=>{satPictureSettings={bright:108,contrast:128,color:113};updateSatellitePictureSettings()};
+ updateSatellitePictureSettings();
+}
+setupSatellitePictureSettings();
+function setBase(){
+ if(!map)return;
+ if(baseLayer)map.removeLayer(baseLayer);
+ if(roadLabels)map.removeLayer(roadLabels);
+ let mode=$('base').value;
+ // OSM Foundation's standard tile servers require a valid HTTP Referer.
+ // Browsers cannot provide a website Referer from file:// local previews.
+ if(mode==='osm'&&location.protocol==='file:'){
+   mode='street';$('base').value='street';
+   setStatus('OpenStreetMap tiles are blocked for local HTML files. Switched to Street (Esri). Try OpenStreetMap on your HTTPS GitHub Pages site.');
+ }
+ let errors=0,switched=false;
+ baseLayer=L.tileLayer(providers[mode],{
+   className:mode==='sat'?'rb-imagery-tiles':'',
+   maxZoom:22,maxNativeZoom:mode==='osm'?19:18,
+   attribution:mode==='osm'?'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>':'Tiles &copy; Esri',
+   crossOrigin:true
+ });
+ baseLayer.on('tileerror',()=>{
+   if(switched)return;
+   errors++;
+   // Avoid prolonged 403 blocked-tile images if the website is rejected, too.
+   if(mode==='osm'&&errors>=2&&$('base').value==='osm'){
+     switched=true;
+     $('base').value='street';
+     setBase();
+     setStatus('OpenStreetMap did not provide tiles. Switched to Street (Esri) so you can keep working.');
+     return;
+   }
+   if(errors===1&&mode!=='osm')setStatus('Map tiles failed to load. Try Satellite (Esri) or check internet access.');
+ });
+ baseLayer.on('load',()=>{
+   if(!switched&&errors===0)setStatus('Map loaded. Click to add a customer pin.');
+ });
+ baseLayer.addTo(map);
+  applySatellitePictureSettings();
+  if(mode==='sat'&&$('labels').checked){
+   roadLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{
+     maxZoom:22,maxNativeZoom:18,opacity:.95,attribution:'Labels &copy; Esri'
+   }).addTo(map);
+ }
+ rbApplyLineStyles();
+}
+// Place automatic labels opposite the house side of the closest GPX road segment. Manual overrides remain available.
+function labelSide(stop,points){
+ if(stop.labelSide && stop.labelSide!=='auto')return stop.labelSide;
+ if(!points||points.length<2)return 'right';
+ const lat=stop.lat,lon=stop.lon,cos=Math.cos(lat*Math.PI/180);let best=Infinity,side='right';
+ for(let i=1;i<points.length;i++){
+  const a=points[i-1],b=points[i];if(!a||!b)continue;
+  const ax=(a[1]-lon)*cos,ay=a[0]-lat,bx=(b[1]-lon)*cos,by=b[0]-lat;
+  const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy;if(len<1e-13)continue;
+  const t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/len));const nx=ax+t*dx,ny=ay+t*dy,d=nx*nx+ny*ny;
+  if(d<best){best=d;side=Math.abs(dy)>Math.abs(dx)?(nx<0?'left':'right'):(ny<0?'bottom':'top');}
+ }
+ return ({left:'right',right:'left',top:'bottom',bottom:'top'})[side] || 'left';
+}
+let markerCache=new Map(), lastRouteForPins=null, stopListPage=0, stopListFilter='all', selectedStopId=null, commercialSequenceLine=null;
+const STOP_PAGE_SIZE=60;
+const DEFAULT_PIN_COLORS={confirmed:'#db2777',candidate:'#eab308',opposite:'#2563eb',excluded:'#64748b',missing:'#facc15',dumpLeave:'#8b5cf6',dumpSite:'#f97316',dumpResume:'#14b8a6'};
+let pinColors={...DEFAULT_PIN_COLORS};try{let pref=JSON.parse(sessionStorage.getItem('routebuilder_pin_colors')||'{}');for(const key in DEFAULT_PIN_COLORS)if(/^#[0-9a-f]{6}$/i.test(pref[key]||''))pinColors[key]=pref[key]}catch(e){}
+function pinColor(s){const kind=activeMode==='residential'&&s.pickupMode==='opposite'?'opposite':s.serviceState==='excluded'?'excluded':s.serviceState==='candidate'?'candidate':'confirmed';return pinColors[kind]}
+function applyPinColorSettings(){for(const key in DEFAULT_PIN_COLORS){const input=$('color'+key[0].toUpperCase()+key.slice(1));if(input)input.value=pinColors[key]}document.documentElement.style.setProperty('--missing-pin-color',pinColors.missing);const legend=document.querySelector('.bulk-pin-legend');if(legend){legend.style.color=pinColors.confirmed;legend.style.background='#fff';legend.textContent='● Confirmed'}}
+function updatePinColors(){for(const key in DEFAULT_PIN_COLORS){const input=$('color'+key[0].toUpperCase()+key.slice(1));if(input)pinColors[key]=input.value}sessionStorage.setItem('routebuilder_pin_colors',JSON.stringify(pinColors));applyPinColorSettings();refresh()}
+for(const key in DEFAULT_PIN_COLORS){const input=$('color'+key[0].toUpperCase()+key.slice(1));if(input)input.addEventListener('input',updatePinColors)}
+$('resetPinColors').onclick=()=>{pinColors={...DEFAULT_PIN_COLORS};updatePinColorsFromDefaults()};
+function updatePinColorsFromDefaults(){applyPinColorSettings();sessionStorage.setItem('routebuilder_pin_colors',JSON.stringify(pinColors));refresh()}
+applyPinColorSettings();
+let rbAddressDisplayMode='clean';
+function pinIcon(s,i){
+ const z=map.getZoom(),mode=rbAddressDisplayMode;
+ const sz=z>=18?(mode==='numbers'?24:mode==='review'?18:16):z>=16?(mode==='numbers'?17:13):z>=14?11:8;
+ const showNumber=z>=16&&(mode==='numbers'||(mode==='clean'&&z>=19)||(mode==='review'&&z>=19));
+ return L.divIcon({className:'',html:`<div class="pin" style="background:${pinColor(s)};width:${sz}px;height:${sz}px;line-height:${sz-3}px;font-size:${showNumber?Math.max(8,sz>=20?10:8):0}px;border:2px solid #fff;box-shadow:0 0 0 1px #26313b,0 1px 3px #0009">${showNumber?i+1:''}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+}
+function popupForStop(s,i){return `<b>Stop ${i+1}</b><p>${esc(s.address||'Address unavailable')}</p><div class="row"><button type="button" data-popup="edit" data-i="${i}">Open customer in list</button><button type="button" data-popup="delete" data-i="${i}">Delete pin</button><button type="button" data-popup="exclude" data-i="${i}">${s.serviceState==='excluded'?'Restore':'Exclude'}</button>${activeMode==='residential'?`<button type="button" data-popup="opposite" data-i="${i}">${s.pickupMode==='opposite'?'Normal right-side':'Blue: opposite-side'}</button>`:''}</div>`}
+function updateCommercialSequence(){
+ if(!map)return;
+ if(commercialSequenceLine){map.removeLayer(commercialSequenceLine);commercialSequenceLine=null}
+ const r=current();
+ if(r.mode!=='commercial'||r.pinsHidden||!document.getElementById('showCommercialSequence')?.checked)return;
+ const coords=r.stops.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&s.serviceState!=='excluded'&&s.serviceState!=='candidate').map(s=>[s.lat,s.lon]);
+ if(coords.length>=2){
+  commercialSequenceLine=L.polyline(coords,{color:'#16803c',dashArray:'5,9',weight:3,opacity:.82,interactive:false}).addTo(map);
+  commercialSequenceLine.bringToBack();
+ }
+}
+$('showCommercialSequence').onchange=updateCommercialSequence;
+function renderStopPins(){
+ if(!map||!stopLayer)return;const r=current();orderStopsByGPX(r);stopLayer.clearLayers();markerCache.clear();lastRouteForPins=r.id;
+ updateCommercialSequence();
+ if(r.pinsHidden)return;
+ const bounds=map.getBounds().pad(.15);const items=r.stops;
+ for(let i=0;i<items.length;i++){
+  const s=items[i];if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon)||!bounds.contains([s.lat,s.lon]))continue;
+  if(stopListFilter==='unconfirmed'&&s.serviceState!=='candidate')continue;
+  const marker=L.marker([s.lat,s.lon],{draggable:!bulkMode,icon:pinIcon(s,i)}).addTo(stopLayer);
+  marker.bindPopup(()=>popupForStop(s,i));marker.on('click',e=>{if(bulkTogglePin(i)){L.DomEvent.stopPropagation(e);marker.closePopup()}});
+  if(showStopLabels&&map.getZoom()>=18&&s.address)marker.bindTooltip(esc(s.address),{permanent:true,direction:labelSide(s,r.points),offset:[0,0],className:'customer-address-label'});
+  marker.on('dragstart',()=>rememberChange());marker.on('dragend',e=>{const p=e.target.getLatLng();s.lat=p.lat;s.lon=p.lng;s.gpxSequence=gpXSequence(r.points,s.lat,s.lon);if(r.mode==='commercial')r.manualOrderActive=true;save();updateCommercialSequence();marker.setPopupContent(popupForStop(s,i));setStatus('Pin moved and saved. Verify its address.');});
+  markerCache.set(i,marker);
+ }
+}
+function renderStopList(){
+ const r=current();for(const s of r.stops)if(!s.id)s.id='stop-'+Math.random().toString(36).slice(2,10);orderStopsByGPX(r);const all=r.stops,filtered=[];
+ for(let i=0;i<all.length;i++)if(stopListFilter!=='unconfirmed'||all[i].serviceState==='candidate')filtered.push(i);
+ const pages=Math.max(1,Math.ceil(filtered.length/STOP_PAGE_SIZE));stopListPage=Math.min(stopListPage,pages-1);
+ const slice=filtered.slice(stopListPage*STOP_PAGE_SIZE,(stopListPage+1)*STOP_PAGE_SIZE);
+ $('stops').innerHTML=`<div class="row"><button type="button" id="prevStopPage" ${stopListPage===0?'disabled':''}>Previous</button><span class="small">Page ${stopListPage+1} of ${pages} • ${filtered.length} stops</span><button type="button" id="nextStopPage" ${stopListPage>=pages-1?'disabled':''}>Next</button></div>`+
+ slice.map(i=>{const s=all[i];return `<div class="stop ${selectedStopId===s.id?'selected-stop':''}" draggable="true" data-stop-index="${i}" id="stop-card-${esc(s.id)}"><div class="order-tools"><span title="Drag to reorder">⠿</span><b>${i+1}. ${esc(s.address||'Address not found')}</b><label class="small"># <input class="order-edit" type="number" min="1" max="${all.length}" value="${i+1}" data-number-index="${i}" aria-label="Change stop number"></label></div><span class="small">${Number.isFinite(s.lat)?s.lat.toFixed(5)+', '+s.lon.toFixed(5):'Pin not placed'} • ${esc(s.status||'Pending')} • ${esc(s.serviceState||'confirmed')}${activeMode==='residential'&&s.bothSidesSinglePass?' • both sides / one pass':''}</span><div class="actions"><button data-act="edit" data-i="${i}">Edit address</button><button data-act="find" data-i="${i}">Find address</button><button data-act="place" data-i="${i}">Place pin</button><button data-act="service" data-i="${i}">${s.serviceState==='candidate'?'Confirm pickup':s.serviceState==='excluded'?'Restore pickup':'Exclude pickup'}</button>${activeMode==='residential'?`<button data-act="opposite" data-i="${i}">${s.pickupMode==='opposite'?'Blue: opposite side':'Mark opposite-side'}</button><button data-act="bothSides" data-i="${i}">${s.bothSidesSinglePass?'Both sides: On':'Both sides: Off'}</button>`:''}<button data-act="status" data-i="${i}">Status</button><button data-act="remove" data-i="${i}">Delete</button></div>${selectedStopId===s.id?`<div class="customer-editor"><b>Edit customer details</b><label>Address<input type="text" data-detail="address" value="${esc(s.address||'')}" placeholder="Street address"></label><label>Pickup status<select data-detail="status"><option ${s.status==='Pending'?'selected':''}>Pending</option><option ${s.status==='Complete'?'selected':''}>Complete</option><option ${s.status==='Not Out'?'selected':''}>Not Out</option><option ${s.status==='Blocked'?'selected':''}>Blocked</option><option ${s.status==='Skipped'?'selected':''}>Skipped</option></select></label><label>Pickup classification<select data-detail="serviceState"><option value="confirmed" ${s.serviceState==='confirmed'?'selected':''}>Confirmed</option><option value="candidate" ${s.serviceState==='candidate'?'selected':''}>Needs review</option><option value="excluded" ${s.serviceState==='excluded'?'selected':''}>Excluded</option></select></label>${activeMode==='residential'?`<label>Pickup side<select data-detail="pickupMode"><option value="right" ${s.pickupMode!=='opposite'?'selected':''}>Normal right-side</option><option value="opposite" ${s.pickupMode==='opposite'?'selected':''}>Manual opposite-side (blue)</option></select></label>`:`<span class="small">Front Loader: either-side access. No right-side restriction.</span>`}<div class="row"><button type="button" class="primary" data-act="saveDetails" data-i="${i}">Save customer</button><button type="button" data-act="closeDetails">Close</button></div></div>`:''}</div>`}).join('');
+ $('prevStopPage').onclick=()=>{stopListPage--;renderStopList()};$('nextStopPage').onclick=()=>{stopListPage++;renderStopList()};
+ $('stops').querySelectorAll('[data-number-index]').forEach(inp=>{inp.onchange=()=>{let from=Number(inp.dataset.numberIndex),to=Math.max(0,Math.min(all.length-1,Number(inp.value)-1));if(!Number.isInteger(to)||from===to){renderStopList();return}rememberChange();const [item]=all.splice(from,1);all.splice(to,0,item);r.manualOrderActive=true;save();renderStopPins();renderStopList();setStatus('Stop order updated. Original GPX track remains unchanged.')}});
+ $('stops').querySelectorAll('.stop[draggable="true"]').forEach(card=>{card.ondragstart=e=>{e.dataTransfer.setData('text/plain',card.dataset.stopIndex);e.dataTransfer.effectAllowed='move';card.classList.add('dragging')};card.ondragend=()=>{card.classList.remove('dragging');$('stops').querySelectorAll('.drop-target').forEach(x=>x.classList.remove('drop-target'))};card.ondragover=e=>{e.preventDefault();card.classList.add('drop-target')};card.ondragleave=()=>card.classList.remove('drop-target');card.ondrop=e=>{e.preventDefault();const from=Number(e.dataTransfer.getData('text/plain')),to=Number(card.dataset.stopIndex);if(from===to||!Number.isInteger(from)||!Number.isInteger(to))return;rememberChange();const [item]=all.splice(from,1);all.splice(to,0,item);r.manualOrderActive=true;save();renderStopPins();renderStopList();setStatus('Stops reordered. Original GPX track remains unchanged.')};});
+
+}
+function applyModeUI(){const sel=$('truckMode');if(sel)sel.value=activeMode;const commercial=activeMode==='commercial';const cp=$('commercialPanel');if(cp)cp.style.display=commercial?'block':'none';const opt=$('residentialOptimizerPanel');if(opt)opt.style.display=commercial?'none':'block';const scan=$('scanGPXAddresses');if(scan){scan.disabled=false;scan.textContent=commercial?'Find possible stops along GPX (either side)':'Find more right-side addresses along GPX'}const title=$('gpxScanTitle');if(title)title.textContent=commercial?'Find commercial service locations along GPX':'Find additional residential addresses along GPX';const desc=$('gpxScanDescription');if(desc)desc.textContent=commercial?'Front Loader: look for possible business addresses on either side of the GPX. No right-side requirement. Results are unconfirmed; review dumpster access and customer service status.':'Side Loader: look for possible pickups on the right side of each driven pass. Reverse-direction passes can cover the other side. Results require review.';const mp=$('missingHousePanel');if(mp)mp.style.display=commercial?'none':'block';const stopTitle=$('stopListTitle');if(stopTitle)stopTitle.textContent=commercial?'Commercial customer stops':'Customer stops';const stopIntro=$('stopListIntro');if(stopIntro)stopIntro.textContent=commercial?'Pin 1 is Stop 1, pin 2 is Stop 2, and so on. No automatic right-side sorting or route optimization. Drag cards or change stop numbers to reorder. The dotted line is not turn-by-turn directions.':'Click a house or roadside pickup point to add a numbered pin. Addresses are looked up when available, not guessed.';}
+$('truckMode').value=activeMode;$('truckMode').onchange=()=>{activeMode=$('truckMode').value;sessionStorage.setItem('routebuilder_mode',activeMode);let found=modeRoutes()[0];if(!found){found={id:'route-'+activeMode+'-'+Date.now(),name:activeMode==='commercial'?'New commercial route':'New residential route',points:[],stops:[],mode:activeMode};library.push(found)}active=found.id;undoStack=[];redoStack=[];applyModeUI();refresh();fit();setStatus(activeMode==='commercial'?'Commercial routes selected. Residential data remains separate.':'Residential routes selected. Commercial data remains separate.');};
+function refresh(){
+ const r=bulkEnsureRoute();applyModeUI();$('routes').innerHTML=modeRoutes().map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');if(!modeRoutes().some(x=>x.id===active)){active=modeRoutes()[0]?.id||active}$('routes').value=active;
+ $('stats').textContent=`${r.points.length.toLocaleString()} track points • ${r.stops.length} customer pins${r.originalLocked?' • original GPX locked':''}`;
+ if(!map)return;
+ if(track)map.removeLayer(track);if(comparisonTrack){map.removeLayer(comparisonTrack);comparisonTrack=null}
+ if($('showTrack').checked&&r.points.length)track=L.polyline(r.points,{color:r.optimizedFrom?'#16a34a':'#286b9a',weight:4,opacity:.85,smoothFactor:2}).addTo(map);
+ if(r.optimizedFrom&&$('showTrack').checked){const orig=library.find(x=>x.id===r.optimizedFrom);if(orig?.points?.length&&window.routeCompareView!=='optimized')comparisonTrack=L.polyline(orig.points,{color:'#2563eb',weight:3,opacity:.7,smoothFactor:2}).addTo(map);if(window.routeCompareView==='original'&&track){map.removeLayer(track);track=null}}
+ if(rbSearchForRoute!==r.id){rbSearchRemoveHighlight();rbSearchForRoute=r.id;rbSearchMatches=[];$('rbSearchInput').value='';$('rbSearchResults').textContent='';$('rbSearchSummary').textContent="Search the selected route's customer addresses.";}
+ rbApplyLineStyles();
+ renderStopPins();renderStopList();bulkDrawVisual();renderMissingHouses();
+}
+$('hideAllPins').onclick=()=>{current().pinsHidden=true;save();renderStopPins();setStatus('Pins hidden for this route. Stops are not deleted.')};
+$('showAllPins').onclick=()=>{current().pinsHidden=false;save();renderStopPins();setStatus('Pins visible for this route.')};
+$('saveNow').onclick=()=>{save();$('saveStatus').textContent='Saved in this browser; cloud sync requested. Check the status before closing.';setStatus('Save requested for this route.')};
+$('confirmAll').onclick=()=>{const r=current(),n=r.stops.filter(s=>s.serviceState!=='excluded').length;if(!confirm('Confirm '+n+' remaining stops on this route? Excluded stops will remain excluded.'))return;for(const s of r.stops)if(s.serviceState!=='excluded'){s.serviceState='confirmed';s.permanent=true}save();renderStopPins();renderStopList();setStatus(n+' pickups confirmed for this route.')};
+$('showOnlyUnconfirmed').onclick=()=>{stopListFilter=stopListFilter==='unconfirmed'?'all':'unconfirmed';stopListPage=0;$('showOnlyUnconfirmed').textContent=stopListFilter==='unconfirmed'?'Show all stops':'Show unconfirmed only';renderStopPins();renderStopList()};
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-popup]');if(!b)return;e.preventDefault();e.stopPropagation();const r=current(),i=+b.dataset.i,s=r.stops[i];if(!s)return;const action=b.dataset.popup;if(action==='edit'){selectedStopId=s.id;stopListFilter='all';stopListPage=Math.floor(i/STOP_PAGE_SIZE);renderStopList();setTimeout(()=>{const card=document.getElementById('stop-card-'+CSS.escape(s.id));if(card){card.scrollIntoView({behavior:'smooth',block:'center'});card.querySelector('[data-detail=address]')?.focus()}},60);map.closePopup();return}else if(action==='delete'){rememberChange();recordStopDeletion(r,i)}else if(action==='exclude'){s.serviceState=s.serviceState==='excluded'?'confirmed':'excluded'}else if(action==='opposite'&&activeMode==='residential'){s.pickupMode=s.pickupMode==='opposite'?'right':'opposite';if(s.pickupMode==='opposite')s.serviceState='confirmed'}map.closePopup();save();renderStopPins();renderStopList()});
+
+function fit(){if(!map)return;let r=current();if(r.points.length){map.fitBounds(L.latLngBounds(r.points),{padding:[20,20]})}else if(r.stops.some(s=>Number.isFinite(s.lat)))map.fitBounds(L.latLngBounds(r.stops.filter(s=>Number.isFinite(s.lat)).map(s=>[s.lat,s.lon])),{padding:[20,20]})}
+function gpXSequence(points,lat,lon){
+ if(!points||points.length<2)return 0;let bestD=Infinity,bestSeq=0;const p=[lat,lon];
+ for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];if(!a||!b)continue;const q=optProjection(p,a,b);if(q.d<bestD){bestD=q.d;bestSeq=(i-1)+q.t}}
+ return bestSeq;
+}
+function orderStopsByGPX(r){
+ if(!r||r.mode==='commercial'||!r.points||r.points.length<2||r.manualOrderActive)return;
+ for(const stop of r.stops){if(Number.isFinite(stop.lat)&&Number.isFinite(stop.lon)&&!Number.isFinite(stop.gpxSequence))stop.gpxSequence=gpXSequence(r.points,stop.lat,stop.lon)}
+ r.stops.sort((a,b)=>{const av=Number.isFinite(a.gpxSequence)?a.gpxSequence:Infinity,bv=Number.isFinite(b.gpxSequence)?b.gpxSequence:Infinity;return av-bv});
+}
+function addStop(p){let r=current();rememberChange();let s={id:'stop-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),mode:activeMode,lat:p.lat,lon:p.lng,address:'',status:'Pending',serviceState:'confirmed',pickupMode:activeMode==='commercial'?'either':'right'};s.gpxSequence=gpXSequence(r.points,p.lat,p.lng);if(r.mode==='commercial'){r.manualOrderActive=true;r.stops.push(s)}else if(r.manualOrderActive){let at=r.stops.findIndex(x=>Number.isFinite(x.gpxSequence)&&x.gpxSequence>s.gpxSequence);r.stops.splice(at<0?r.stops.length:at,0,s)}else r.stops.push(s);orderStopsByGPX(r);save();refresh();lookup(s)}
+async function lookup(s){setStatus('Looking for an address…');const lat=s.lat,lon=s.lon;let address='';try{let u=`https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?location=${lon},${lat}&f=pjson`;let res=await fetch(u);if(res.ok){let j=await res.json();if(j.address&&!j.error){let a=j.address;address=a.Match_addr||a.LongLabel||''}}}catch(e){}if(!address){try{let res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);if(res.ok){let j=await res.json(),a=j.address||{};if(a.house_number&& (a.road||a.residential))address=`${a.house_number} ${a.road||a.residential}`;}}catch(e){}}if(!library.some(r=>r.stops.includes(s)))return;if(s.lat!==lat||s.lon!==lon)return;if(address){s.address=address;s.addressSource='lookup';setStatus('Address returned. Check the house number before using it.')}else{setStatus('No verified house address found at this pin. You can edit it manually.')}save();refresh()}
+$('stops').addEventListener('click',e=>{let b=e.target.closest('button[data-act]');if(!b)return;let r=current(),i=+b.dataset.i,s=r.stops[i],a=b.dataset.act;if(a==='closeDetails'){selectedStopId=null;renderStopList();return}if(!s&&a!=='closeDetails')return;if(a==='saveDetails'){rememberChange();const card=b.closest('.stop');s.address=card.querySelector('[data-detail=address]').value.trim();s.status=card.querySelector('[data-detail=status]').value;s.serviceState=card.querySelector('[data-detail=serviceState]').value;if(activeMode==='residential')s.pickupMode=card.querySelector('[data-detail=pickupMode]')?.value||'right';else s.pickupMode='either';save();renderStopPins();renderStopList();setStatus('Customer details saved.');return}if(!s)return;if(['edit','side','remove','up','down','service','opposite','bothSides','status','place'].includes(a))rememberChange();if(a==='edit'){let v=prompt('Customer street address:',s.address||'');if(v!==null){s.address=v.trim();s.addressSource='manual'}}if(a==='side'){let choices=['auto','left','right','top','bottom'];let v=prompt('Label position: auto, left, right, top, bottom',s.labelSide||'auto');if(v!==null){v=v.trim().toLowerCase();if(choices.includes(v))s.labelSide=v;else alert('Choose auto, left, right, top, or bottom.')}}if(a==='find'){if(Number.isFinite(s.lat))lookup(s);else alert('Place the pin first, then find the address.')}if(a==='place'){placingStop=s;setStatus('Click the map at this customer’s driveway or roadside pickup position. No confirmation needed.')} if(a==='remove')recordStopDeletion(r,i);if(a==='up'&&i>0)[r.stops[i-1],r.stops[i]]=[r.stops[i],r.stops[i-1]];if(a==='down'&&i<r.stops.length-1)[r.stops[i+1],r.stops[i]]=[r.stops[i],r.stops[i+1]];if(a==='service'){s.serviceState=s.serviceState==='candidate'?'confirmed':s.serviceState==='excluded'?'confirmed':'excluded'}if(a==='opposite'&&activeMode==='residential'){s.pickupMode=s.pickupMode==='opposite'?'right':'opposite';if(s.pickupMode==='opposite')s.serviceState='confirmed'}if(a==='bothSides'&&activeMode==='residential'){s.bothSidesSinglePass=!s.bothSidesSinglePass;if(s.bothSidesSinglePass)s.serviceState='confirmed'}if(a==='status'){let v=prompt('Status: Pending, Complete, Not Out, Blocked, Skipped',s.status||'Pending');if(v!==null)s.status=v.trim()}save();renderStopPins();renderStopList()});
+
+
+// --- FIND MISSING HOUSES: reviewed address inventory, not automatic customer pickups ---
+// This module never changes the original GPX scanner or silently creates service stops.
+const BENTON_ADDRESS_QUERY='https://gis.bentonvillear.com/arcgis/rest/services/Base_map/Benton_County_Data/FeatureServer/0/query';
+let missingLayer=null, missingPage=0, missingBusy=false, missingVisibleRoute=null;
+const MISSING_PAGE_SIZE=25;
+function missingNormalizeAddress(v){
+ const replacements={street:'st',road:'rd',avenue:'ave',drive:'dr',circle:'cir',boulevard:'blvd',lane:'ln',court:'ct',place:'pl',trail:'trl',north:'n',south:'s',east:'e',west:'w',highway:'hwy'};
+ return String(v||'').toLowerCase().replace(/\b(st|rd|ave|dr|cir|blvd|ln|ct|pl|trl)\.?\b/g,x=>x).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>replacements[t]||t).join(' ');
+}
+function missingAddressNumber(a){return String(a||'').match(/^\s*\d+[a-z]?/i)?.[0]?.trim().toLowerCase()||''}
+function missingCandidateList(r){if(!Array.isArray(r.addressCandidates))r.addressCandidates=[];return r.addressCandidates}
+function missingGetCandidate(id){return missingCandidateList(current()).find(c=>c.id===id)}
+function missingMatchStop(r,c){
+ const key=missingNormalizeAddress(c.address);let nearest=null,nearestDist=Infinity;
+ for(let i=0;i<r.stops.length;i++){
+  const s=r.stops[i];if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon))continue;
+  // Cheap coordinate reject before computing distances against large stop lists.
+  if(Math.abs(s.lat-c.lat)>.001||Math.abs(s.lon-c.lon)>.0015)continue;
+  const d=optDist([s.lat,s.lon],[c.lat,c.lon]);
+  if(d<nearestDist){nearestDist=d;nearest={index:i,stop:s,distance:d}}
+  if(key&&key===missingNormalizeAddress(s.address)&&d<95)return {index:i,stop:s,distance:d,kind:'same'};
+ }
+ if(nearest&&nearest.distance<13)return {...nearest,kind:'near'};
+ return null;
+}
+function missingMatchCandidate(items,c){
+ const key=missingNormalizeAddress(c.address),number=missingAddressNumber(c.address);
+ return items.find(x=>{
+  const d=Math.abs(x.lat-c.lat)<.001&&Math.abs(x.lon-c.lon)<.0015?optDist([x.lat,x.lon],[c.lat,c.lon]):Infinity;
+  const xKey=missingNormalizeAddress(x.address);
+  return (key&&xKey===key&&d<95)||(d<13&&number&&number===missingAddressNumber(x.address));
+ });
+}
+function missingApplySource(r,items,source){
+ const list=missingCandidateList(r),seenAt=new Date().toISOString(),counts={added:0,refreshed:0,alreadyServiced:0,withoutAddress:0};
+ for(const rec of items){
+  if(!rec||!Number.isFinite(rec.lat)||!Number.isFinite(rec.lon)||!rec.address||!missingAddressNumber(rec.address)){counts.withoutAddress++;continue}
+  const m=missingMatchStop(r,rec);
+  if(m?.kind==='same'){counts.alreadyServiced++;continue}
+  let found=missingMatchCandidate(list,rec);
+  if(found){
+   if(!Array.isArray(found.sources))found.sources=found.source?[found.source]:[];
+   if(!found.sources.includes(source))found.sources.push(source);
+   found.lastSeenAt=seenAt;
+   if(!found.manualAddress&&found.reviewState!=='ignored'&&source==='Benton County GIS'&&missingNormalizeAddress(found.address)!==missingNormalizeAddress(rec.address)){
+    found.address=rec.address;
+   }
+   counts.refreshed++;
+  }else{
+   list.push({id:'addr-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10),lat:rec.lat,lon:rec.lon,address:rec.address,sources:[source],reviewState:'new',firstSeenAt:seenAt,lastSeenAt:seenAt});
+   counts.added++;
+  }
+ }
+ return counts;
+}
+function missingCountyAddress(a){
+ const raw=String(a.FULL_ADDR||'').trim();
+ if(raw&&/^\d/.test(raw))return raw;
+ return [a.ADDR_NUM,a.PRE_DIR,a.ROAD_NAME,a.TYPE,a.SUF_DIR,a.UNIT_APT].filter(x=>x!==null&&x!==undefined&&String(x).trim()).join(' ').trim();
+}
+function missingScanBounds(){
+ if(!map)throw Error('Map is not loaded.');
+ if(map.getZoom()<16)throw Error('Zoom in to level 16 or closer over Silver Leaf or another neighborhood.');
+ const b=map.getBounds();
+ if(b.getEast()-b.getWest()>.03||b.getNorth()-b.getSouth()>.03)throw Error('Map covers too large an area. Zoom closer before scanning.');
+ return [b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
+}
+function missingRunStatus(msg){$('missingStatus').textContent=msg}
+async function missingArcgisPage(src,bounds,offset){
+ const [west,south,east,north]=bounds;
+ const county=src==='Benton County GIS',pageSize=county?500:200;
+ const params=new URLSearchParams({f:'json',where:county?'1=1':"cnty_name = 'Benton'",geometry:JSON.stringify({xmin:west,ymin:south,xmax:east,ymax:north,spatialReference:{wkid:4326}}),geometryType:'esriGeometryEnvelope',inSR:'4326',spatialRel:'esriSpatialRelIntersects',outSR:'4326',outFields:county?'FULL_ADDR,ADDR_NUM,PRE_DIR,ROAD_NAME,TYPE,SUF_DIR,UNIT_APT,CITY,OBJECTID':'adr_num,adr_num_comp,pstr_fulnam,pre_dir,pstr_nam,pstr_type,psuf_dir,adr_unit_typ,adr_unit_id,cnty_name,objectid',returnGeometry:'true',resultOffset:String(offset),resultRecordCount:String(pageSize)});
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),15000);
+ try{
+  const resp=await fetch((county?BENTON_ADDRESS_QUERY:ADDRESS_SERVICE)+'?'+params.toString(),{signal:ctrl.signal});
+  if(!resp.ok)throw Error('HTTP '+resp.status);
+  const j=await resp.json();if(j.error)throw Error(j.error.message||'Service returned an error');
+  return (j.features||[]).map(f=>({lat:f.geometry?.y,lon:f.geometry?.x,address:county?missingCountyAddress(f.attributes||{}):addressText(f.attributes||{})}));
+ }finally{clearTimeout(timer)}
+}
+async function missingFetchArcgis(src,bounds){
+ const items=[],pageSize=src==='Benton County GIS'?500:200,maxPages=src==='Benton County GIS'?6:8;
+ for(let page=0;page<maxPages;page++){
+  const records=await missingArcgisPage(src,bounds,page*pageSize);
+  items.push(...records);
+  if(records.length<pageSize)return {items,limited:false};
+ }
+ return {items,limited:true};
+}
+async function missingFetchOSM(bounds){
+ const [west,south,east,north]=bounds;
+ const bb=`${south},${west},${north},${east}`;
+ const query=`[out:json][timeout:20];(node["addr:housenumber"](${bb});way["addr:housenumber"](${bb}););out center;`;
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),24000);
+ try{
+  const resp=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:new URLSearchParams({data:query}),signal:ctrl.signal});
+  if(!resp.ok)throw Error('HTTP '+resp.status);
+  const data=await resp.json();
+  if(!Array.isArray(data.elements))throw Error('Unexpected OpenStreetMap response');
+  const items=[];
+  for(const e of data.elements){const t=e.tags||{},number=String(t['addr:housenumber']||'').trim(),street=String(t['addr:street']||'').trim();
+   const lat=e.lat??e.center?.lat,lon=e.lon??e.center?.lon;
+   if(!number||!street||!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+   items.push({lat,lon,address:[number,street].join(' ')});
+  }
+  return {items,limited:false};
+ }finally{clearTimeout(timer)}
+}
+// Neighborhood bulk approval: operates ONLY on saved, unignored missing-house candidates.
+// Drawing never alters the original GPX. Saving a batch creates one Undo snapshot.
+let missingAreaMode=false,missingAreaVertices=[],missingAreaRoute=null,missingAreaShape=null,missingAreaMarkers=null;
+let missingAreaDrawing=false, missingAreaPointerId=null, missingAreaIgnoreClickUntil=0, missingAreaLastPixel=null;
+function missingAreaReset(keepMessage=false){
+ missingAreaMode=false;missingAreaDrawing=false;missingAreaPointerId=null;missingAreaLastPixel=null;missingAreaVertices=[];missingAreaRoute=current()?.id||null;
+ if(map?.dragging)map.dragging.enable();
+ if(map&&missingAreaShape)map.removeLayer(missingAreaShape);
+ if(map&&missingAreaMarkers)map.removeLayer(missingAreaMarkers);
+ missingAreaShape=null;missingAreaMarkers=null;
+ if(map)map.getContainer().style.cursor='';
+ if(!keepMessage)missingRunStatus('Area selection cleared. No route stops were changed.');
+ missingAreaUpdate();
+}
+function missingAreaContains(lat,lon,vertices){
+ // Longitude is x, latitude is y. Ray-casting polygon containment.
+ let inside=false;
+ for(let i=0,j=vertices.length-1;i<vertices.length;j=i++){
+  const yi=vertices[i].lat,yj=vertices[j].lat,xi=vertices[i].lng,xj=vertices[j].lng;
+  if(((yi>lat)!==(yj>lat))&&(lon<(xj-xi)*(lat-yi)/(yj-yi)+xi))inside=!inside;
+ }
+ return inside;
+}
+function missingAreaCandidates(){
+ if(missingAreaRoute!==current().id||missingAreaMode||missingAreaVertices.length<3)return [];
+ const r=current();
+ return missingCandidateList(r).filter(c=>c.reviewState!=='ignored'&&Number.isFinite(c.lat)&&Number.isFinite(c.lon)&&!missingMatchStop(r,c)&&missingAreaContains(c.lat,c.lon,missingAreaVertices));
+}
+function missingAreaUpdate(){
+ if(!$('missingAreaCount'))return;
+ if(missingAreaRoute!==current().id&&missingAreaRoute!==null){missingAreaReset(true);return}
+ $('missingDrawArea').textContent=missingAreaMode?'Cancel freehand drawing':'✎ Draw freehand';
+ $('missingClearArea').disabled=!missingAreaMode&&!missingAreaVertices.length;
+ const list=missingAreaCandidates();
+ $('missingAreaCount').textContent=missingAreaMode?(missingAreaDrawing?'Keep holding and trace around the houses, then release.':'Click and hold on map, trace a shape, then release.'):missingAreaVertices.length>=3?`${list.length} unignored missing-house addresses inside your boundary. Already-serviced stops are not included.`:'No area selected.';
+ $('missingAddArea').disabled=!list.length||missingAreaMode;
+ $('missingAddArea').textContent=`Add selected houses to route (${list.length})`;
+ if(!map)return;
+ if(missingAreaShape)map.removeLayer(missingAreaShape);
+ if(missingAreaMarkers)map.removeLayer(missingAreaMarkers);
+ missingAreaShape=null;missingAreaMarkers=null;
+ if(missingAreaVertices.length){missingAreaShape=missingAreaMode?L.polyline(missingAreaVertices,{color:'#7c3aed',weight:3,dashArray:'8 6',interactive:false}).addTo(map):L.polygon(missingAreaVertices,{color:'#7c3aed',weight:3,fillColor:'#a78bfa',fillOpacity:.15,interactive:false}).addTo(map)}
+ if(list.length){missingAreaMarkers=L.layerGroup().addTo(map);for(const c of list){L.circleMarker([c.lat,c.lon],{radius:11,color:'#7c3aed',weight:3,fillColor:'#facc15',fillOpacity:.95,interactive:false}).addTo(missingAreaMarkers)}}
+}
+// Freehand lasso captures pointer input on the Leaflet container before map/marker handlers.
+// During drawing, map dragging is disabled. Releasing closes the polygon automatically.
+function missingAreaInstallFreehand(){
+ if(!map)return;
+ const el=map.getContainer();
+ el.addEventListener('pointerdown',e=>{
+  if(!missingAreaMode||e.button!==0)return;
+  e.preventDefault();e.stopPropagation();
+  missingAreaDrawing=true;missingAreaPointerId=e.pointerId;missingAreaVertices=[];
+  missingAreaLastPixel={x:e.clientX,y:e.clientY};
+  try{el.setPointerCapture(e.pointerId)}catch(_){ }
+  const ll=map.mouseEventToLatLng(e);missingAreaVertices.push({lat:ll.lat,lng:ll.lng});
+  missingAreaUpdate();
+ },true);
+ el.addEventListener('pointermove',e=>{
+  if(!missingAreaMode||!missingAreaDrawing||e.pointerId!==missingAreaPointerId)return;
+  e.preventDefault();e.stopPropagation();
+  const dx=e.clientX-missingAreaLastPixel.x,dy=e.clientY-missingAreaLastPixel.y;
+  if(dx*dx+dy*dy<49)return; // sample every ~7px to keep large outlines responsive
+  missingAreaLastPixel={x:e.clientX,y:e.clientY};
+  const ll=map.mouseEventToLatLng(e);
+  if(missingAreaVertices.length<1500)missingAreaVertices.push({lat:ll.lat,lng:ll.lng});
+  if(missingAreaVertices.length%3===0)missingAreaUpdate();
+ },true);
+ const finish=e=>{
+  if(!missingAreaDrawing||e.pointerId!==missingAreaPointerId)return;
+  e.preventDefault();e.stopPropagation();
+  missingAreaDrawing=false;missingAreaPointerId=null;missingAreaLastPixel=null;
+  try{el.releasePointerCapture(e.pointerId)}catch(_){ }
+  missingAreaIgnoreClickUntil=Date.now()+450;
+  if(missingAreaVertices.length<3){
+   missingAreaVertices=[];missingAreaUpdate();
+   missingRunStatus('Outline too small. Click and hold, drag around the houses, then release.');return;
+  }
+  missingAreaMode=false;if(map?.dragging)map.dragging.enable();missingAreaUpdate();
+  missingRunStatus(`${missingAreaCandidates().length} possible houses selected. Review the outlined locations, then click Add selected houses to route.`);
+ };
+ el.addEventListener('pointerup',finish,true);
+ el.addEventListener('pointercancel',finish,true);
+}
+$('missingDrawArea').onclick=()=>{
+ if(activeMode!=='residential')return;
+ if(missingAreaMode){missingAreaReset();return}
+ bulkCancelDrawing();missingAreaReset(true);missingAreaRoute=current().id;missingAreaMode=true;
+ if(map?.dragging)map.dragging.disable();
+ $('showMissingPins').checked=true;renderMissingPins();missingAreaUpdate();map?.closePopup();
+ missingRunStatus('Click and hold on the map, trace around the houses, then release. The map will not pan while drawing.');
+ if(map)map.getContainer().style.cursor='crosshair';
+};
+$('missingClearArea').onclick=()=>missingAreaReset();
+$('missingAddArea').onclick=()=>{
+ const r=current(),candidates=missingAreaCandidates();if(!candidates.length)return;
+ // A single confirmation protects against accidentally bulk-adding non-customers.
+ if(!confirm(`Add ${candidates.length} possible houses as confirmed pickup stops on ${r.name}? Only do this if you service these addresses. You can Undo the whole batch.`))return;
+ rememberChange();let added=0,skipped=0;
+ for(const c of candidates){
+  if(c.reviewState==='ignored'||missingMatchStop(r,c)){skipped++;continue}
+  const s={id:'stop-'+Date.now()+'-'+Math.random().toString(36).slice(2,9),lat:c.lat,lon:c.lon,address:c.address,status:'Pending',serviceState:'confirmed',pickupMode:r.mode==='commercial'?'either':'right',addressSource:'Area approved: '+(c.sources||[]).join(' + ')};
+  s.gpxSequence=gpXSequence(r.points,s.lat,s.lon);
+  r.stops.push(s);c.reviewState='ignored';added++;
+ }
+ orderStopsByGPX(r);save();missingAreaReset(true);refresh();
+ const msg=`Added ${added} houses to ${r.name}${skipped?' ('+skipped+' skipped as duplicates)':''}. Review curb placement and service side. Undo restores the previous route and review list.`;
+ missingRunStatus(msg);setStatus(msg);
+};
+function missingVisibleCandidates(){
+ const r=current(),all=missingCandidateList(r),showIgnored=$('showIgnoredMissing').checked;
+ return all.filter(c=>(showIgnored||c.reviewState!=='ignored')&&!missingMatchStop(r,c)?.kind?.includes('same')).sort((a,b)=>missingNormalizeAddress(a.address).localeCompare(missingNormalizeAddress(b.address)));
+}
+function renderMissingPins(){
+ if(!map||!missingLayer)return;
+ missingLayer.clearLayers();
+ if(activeMode!=='residential'||!$('showMissingPins').checked)return;
+ const r=current(),b=map.getBounds().pad(.1);
+ const all=missingVisibleCandidates();
+ for(const c of all){if(!b.contains([c.lat,c.lon]))continue;
+  const pin=L.marker([c.lat,c.lon],{icon:L.divIcon({className:'',html:'<span class="missing-marker">+</span>',iconSize:[18,18],iconAnchor:[9,9]})});
+  const match=missingMatchStop(r,c),edit=match?.kind==='near';
+  const label=edit?`Update nearby Stop ${match.index+1} address`:'Add as customer stop';
+  pin.bindPopup(()=>`<b>Possible missing house</b><p>${esc(c.address)}</p><small>${esc((c.sources||[]).join(' + '))}</small><div class="row" style="margin-top:8px"><button type="button" data-missing-action="approve" data-id="${esc(c.id)}">${esc(label)}</button><button type="button" data-missing-action="edit" data-id="${esc(c.id)}">Edit address</button><button type="button" data-missing-action="ignore" data-id="${esc(c.id)}">Ignore</button></div>`);
+  pin.addTo(missingLayer);
+ }
+}
+function renderMissingHouses(){
+ const panel=$('missingHousePanel');if(!panel)return;
+ const r=current(),list=missingVisibleCandidates(),ignored=missingCandidateList(r).filter(c=>c.reviewState==='ignored').length;
+ const pages=Math.max(1,Math.ceil(list.length/MISSING_PAGE_SIZE));missingPage=Math.max(0,Math.min(missingPage,pages-1));
+ $('missingTotals').textContent=`${list.length} addresses for review • ${ignored} ignored • ${r.lastMissingScan?'Last scan: '+new Date(r.lastMissingScan).toLocaleString():'Not scanned yet'}`;
+ $('missingPage').textContent=list.length?`Page ${missingPage+1} of ${pages}`:'No review addresses';
+ $('missingPrev').disabled=missingPage===0;$('missingNext').disabled=missingPage>=pages-1;
+ const selected=list.slice(missingPage*MISSING_PAGE_SIZE,(missingPage+1)*MISSING_PAGE_SIZE);
+ $('missingList').innerHTML=selected.map(c=>{
+  const m=missingMatchStop(r,c),correction=m?.kind==='near';
+  return `<div class="missing-result"><div class="missing-addr">${esc(c.address)}</div><div class="missing-source">${esc((c.sources||[]).join(' + '))}${correction?` • Near existing Stop ${m.index+1}`:''}${c.reviewState==='ignored'?' • Ignored':''}</div><div class="row"><button type="button" data-missing-action="zoom" data-id="${esc(c.id)}">Show on map</button><button class="primary" type="button" data-missing-action="approve" data-id="${esc(c.id)}">${correction?'Update stop address':'Add pickup'}</button><button type="button" data-missing-action="edit" data-id="${esc(c.id)}">Edit</button><button type="button" data-missing-action="ignore" data-id="${esc(c.id)}">${c.reviewState==='ignored'?'Restore':'Ignore'}</button></div></div>`;
+ }).join('')||'<div class="small">No new addresses waiting. Zoom into a neighborhood and run Find Missing Houses; ignored records remain saved separately.</div>';
+ renderMissingPins();missingAreaUpdate();
+}
+function missingApprove(c){
+ const r=current(),match=missingMatchStop(r,c);
+ if(match?.kind==='same'){
+  c.reviewState='ignored';save();renderMissingHouses();setStatus('That address is already a customer pin.');return;
+ }
+ rememberChange();
+ if(match?.kind==='near'){
+  match.stop.address=c.address;match.stop.addressSource='Reviewed address comparison: '+(c.sources||[]).join(' + ');
+  c.reviewState='ignored';save();refresh();setStatus('Updated nearby Stop '+(match.index+1)+' address. Pickup status unchanged.');return;
+ }
+ const s={id:'stop-'+Date.now()+'-'+Math.random().toString(36).slice(2,9),lat:c.lat,lon:c.lon,address:c.address,status:'Pending',serviceState:'confirmed',pickupMode:'right',addressSource:'Reviewed: '+(c.sources||[]).join(' + ')};
+ s.gpxSequence=gpXSequence(r.points,s.lat,s.lon);
+ if(r.mode==='commercial'){r.manualOrderActive=true;r.stops.push(s)}else if(r.manualOrderActive){let at=r.stops.findIndex(x=>Number.isFinite(x.gpxSequence)&&x.gpxSequence>s.gpxSequence);r.stops.splice(at<0?r.stops.length:at,0,s)}else r.stops.push(s);
+ c.reviewState='ignored';orderStopsByGPX(r);save();refresh();setStatus('Added '+c.address+' as a confirmed pickup. Verify its actual curb location and correct side of service.');
+}
+function missingAction(action,id){
+ const r=current(),c=missingGetCandidate(id);if(!c)return;
+ if(action==='zoom'){map.setView([c.lat,c.lon],Math.max(18,map.getZoom()));return}
+ if(action==='edit'){const text=prompt('Correct house address:',c.address);if(text===null)return;if(!text.trim()){setStatus('Address cannot be blank.');return}rememberChange();c.address=text.trim();c.manualAddress=true;c.reviewState='new';save();renderMissingHouses();setStatus('Review address corrected. Click Add pickup if this house is serviced.');return}
+ if(action==='approve'){missingApprove(c);map?.closePopup();return}
+ if(action==='ignore'){rememberChange();c.reviewState=c.reviewState==='ignored'?'new':'ignored';save();renderMissingHouses();setStatus(c.reviewState==='ignored'?'Address ignored; future scans will remember that choice.':'Address restored for review.');map?.closePopup()}
+}
+$('missingList').addEventListener('click',e=>{const b=e.target.closest('[data-missing-action]');if(b)missingAction(b.dataset.missingAction,b.dataset.id)});
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-missing-action]');if(!b||b.closest('#missingList'))return;e.preventDefault();e.stopPropagation();missingAction(b.dataset.missingAction,b.dataset.id)});
+$('missingPrev').onclick=()=>{missingPage--;renderMissingHouses()};$('missingNext').onclick=()=>{missingPage++;renderMissingHouses()};
+$('showMissingPins').checked=false;$('showMissingPins').onchange=renderMissingPins;$('showIgnoredMissing').onchange=()=>{missingPage=0;renderMissingHouses()};
+$('findMissingHouses').onclick=async()=>{
+ const r=current();if(activeMode!=='residential')return;
+ if(missingBusy)return;
+ let bounds;try{bounds=missingScanBounds()}catch(err){missingRunStatus(err.message);return}
+ const button=$('findMissingHouses');missingBusy=true;button.disabled=true;
+ let added=0,refreshed=0,existing=0,checked=0;const failures=[],limits=[];
+ const sources=['Arkansas GIS','Benton County GIS','OpenStreetMap'];
+ try{
+  for(let i=0;i<sources.length;i++){
+   const name=sources[i];missingRunStatus(`Checking ${name} (${i+1} of ${sources.length})… ${added} new addresses saved so far.`);
+   try{
+    const result=name==='OpenStreetMap'?await missingFetchOSM(bounds):await missingFetchArcgis(name,bounds);
+    const counts=missingApplySource(r,result.items,name);added+=counts.added;refreshed+=counts.refreshed;existing+=counts.alreadyServiced;checked++;
+    if(result.limited)limits.push(name);
+    r.lastMissingScan=new Date().toISOString();save();
+    if(current().id===r.id)renderMissingHouses();
+   }catch(err){failures.push(`${name}: ${err.message||'unavailable'}`);console.warn('Missing house lookup',name,err)}
+  }
+  r.lastMissingScan=new Date().toISOString();save();
+  if(current().id===r.id){missingPage=0;renderMissingHouses();
+   missingRunStatus(`Scan finished: ${added} new possible addresses saved, ${refreshed} previously found records refreshed, ${existing} matched existing customer pins. ${checked} of ${sources.length} sources succeeded.${limits.length?' Record limit reached for '+limits.join(', ')+'. Zoom closer.':''}${failures.length?' Some sources failed: '+failures.join('; ')+'. Try again later.':''} Review yellow pins before adding pickups.`);
+   setStatus('Address comparison finished. New addresses saved for review; original GPX and existing customers were not changed.');}
+ }finally{missingBusy=false;button.disabled=false}
+};
+// --- END FIND MISSING HOUSES ---
+
+// Public Arkansas GIS Office SITUS address points. Only request the current viewport at high zoom.
+const ADDRESS_SERVICE='https://gis.arkansas.gov/arcgis/rest/services/FEATURESERVICES/Location/FeatureServer/14/query';
+function scheduleAddressLoad(){clearTimeout(addressTimer);addressTimer=setTimeout(loadAddressNumbers,350)}
+function addressMessage(msg){$('addressStats').textContent=msg}
+function addressText(a){let num=String(a.adr_num_comp||a.adr_num||'').trim(), street=String(a.pstr_fulnam||[a.pre_dir,a.pstr_nam,a.pstr_type,a.psuf_dir].filter(Boolean).join(' ')||'').trim();let unit=[a.adr_unit_typ,a.adr_unit_id].filter(Boolean).join(' ');return [num,street,unit].filter(Boolean).join(' ').trim()}
+async function loadAddressNumbers(){
+  if(!map||!addressLayer)return;
+  const request=++addressFetchId;addressLayer.clearLayers();
+  if(!$('houseNumbers').checked){addressMessage('Overlay off. Turn on Show house numbers to load available addresses.');return}
+  if(map.getZoom()<17){addressMessage('House Numbers is on. Zoom in to level 17+ over Silver Leaf or another neighborhood; labels will appear automatically.');return}
+  const b=map.getBounds(), width=b.getEast()-b.getWest(),height=b.getNorth()-b.getSouth();
+  if(width>0.025||height>0.025){addressMessage('Zoom closer to load a smaller neighborhood.');return}
+  addressMessage('Loading available address points from Arkansas GIS…');
+  let count=0, truncated=false;
+  try{
+    for(let offset=0;offset<1000;offset+=200){
+      const params=new URLSearchParams({f:'json',where:"cnty_name = 'Benton'",geometry:JSON.stringify({xmin:b.getWest(),ymin:b.getSouth(),xmax:b.getEast(),ymax:b.getNorth(),spatialReference:{wkid:4326}}),geometryType:'esriGeometryEnvelope',inSR:'4326',spatialRel:'esriSpatialRelIntersects',outSR:'4326',outFields:'adr_num,adr_num_comp,pstr_fulnam,pre_dir,pstr_nam,pstr_type,psuf_dir,adr_unit_typ,adr_unit_id,adr_city,cnty_name',returnGeometry:'true',resultOffset:String(offset),resultRecordCount:'200'});
+      const response=await fetch(ADDRESS_SERVICE+'?'+params.toString());
+      if(!response.ok)throw Error('GIS server returned '+response.status);
+      const data=await response.json();if(data.error)throw Error(data.error.message||'GIS query failed');
+      if(request!==addressFetchId)return;
+      const features=data.features||[];
+      for(const f of features){const a=f.attributes||{},g=f.geometry||{};if(!Number.isFinite(g.y)||!Number.isFinite(g.x))continue;let number=String(a.adr_num_comp||a.adr_num||'').trim();if(!number)continue;
+        const full=addressText(a);const marker=L.marker([g.y,g.x],{icon:L.divIcon({className:'',html:'<span class="addr-number">'+esc(number)+'</span>',iconSize:[0,0],iconAnchor:[0,0]}),interactive:true});
+        marker.bindTooltip(full||number,{direction:'top'});
+        marker.on('click',e=>{L.DomEvent.stopPropagation(e);const address=full||number;const r=current();if(!r){setStatus('Select a route before adding a customer.');return}
+          // If this exact GIS address is already a pin, select it instead of adding a duplicate.
+          const normalized=x=>String(x||'').trim().toLowerCase().replace(/\s+/g,' ');
+          const existing=r.stops.findIndex(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&Math.abs(s.lat-g.y)<0.000075&&Math.abs(s.lon-g.x)<0.000095&&normalized(s.address)===normalized(address));
+          if(existing>=0){if(typeof openCustomerInList==='function')openCustomerInList(existing);else setStatus('This address is already a customer stop '+(existing+1)+'.');return}
+          const stop={id:'stop-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),lat:g.y,lon:g.x,address,status:'Pending',serviceState:'confirmed',addressSource:'Arkansas GIS address point'};
+          rememberChange();r.stops.push(stop);if(r.mode==='commercial')r.manualOrderActive=true;orderStopsByGPX(r);save();refresh();setStatus('Added '+address+' from Arkansas GIS. Verify the pickup position.');});
+        marker.addTo(addressLayer);count++;
+      }
+      if(features.length<200)break;
+      if(offset===800)truncated=true;
+    }
+    if(request!==addressFetchId)return;
+    addressMessage(count?`${count} house-number labels shown${truncated?' (limit reached; zoom closer)':''}. Click a number to add a customer.`:'No GIS address points returned for this area. This does not mean the houses have no addresses. Add them manually or import a CSV.');
+  }catch(e){if(request!==addressFetchId)return;addressMessage('Address layer unavailable: '+e.message+'. You can still add pins and addresses manually.');}
+}
+$('toggleStopLabels').onclick=()=>{showStopLabels=!showStopLabels;$('toggleStopLabels').textContent='Show close-up labels: '+(showStopLabels?'On':'Off');refresh()};// Silver Leaf clickable-house-number overlay: keep the switch visible and in sync
+// when the user toggles it from the map or the sidebar. Stored only in this browser.
+function setHouseNumberOverlay(enabled){
+  $('houseNumbers').checked=!!enabled;
+  const btn=$('mapHouseNumbers');
+  btn.textContent='⌂ House Numbers: '+(enabled?'On':'Off');
+  btn.setAttribute('aria-pressed',String(!!enabled));
+  try{sessionStorage.setItem('routebuilder_house_numbers',enabled?'on':'off')}catch(e){}
+  scheduleAddressLoad();
+}
+$('houseNumbers').onchange=()=>setHouseNumberOverlay($('houseNumbers').checked);
+$('mapHouseNumbers').onclick=()=>setHouseNumberOverlay(!$('houseNumbers').checked);
+$('reloadNumbers').onclick=loadAddressNumbers;
+setHouseNumberOverlay(sessionStorage.getItem('routebuilder_house_numbers')!=='off');
+
+$('routes').onchange=e=>{active=e.target.value;refresh();fit()};$('showTrack').onchange=refresh;$('base').onchange=setBase;$('labels').onchange=setBase;
+async function geocodeAddress(s){try{let url='https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?SingleLine='+encodeURIComponent(s.address+', Arkansas, USA')+'&f=json&outFields=Match_addr';let resp=await fetch(url);if(!resp.ok)throw Error('Service unavailable');let j=await resp.json();let c=(j.candidates||[])[0];if(c&&c.score>=85&&c.location){s.lat=c.location.y;s.lon=c.location.x;s.needsPin=false;return true}}catch(e){}return false}
+$('addCustomer').onclick=async()=>{let address=prompt('Enter the full customer address (house number, street, city):');if(!address||!address.trim())return;rememberChange();let s={address:address.trim(),lat:null,lon:null,status:'Pending',needsPin:true,addressSource:'manual'};current().stops.push(s);save();refresh();setStatus('Searching for address…');if(await geocodeAddress(s)){save();refresh();map.setView([s.lat,s.lon],18);setStatus('Address located approximately. Check pin location.')}else{save();refresh();setStatus('Address saved. Use Place pin to locate it manually on the map.')}};
+function parseCSV(text){let rows=[],row=[],field='',quoted=false;for(let i=0;i<text.length;i++){let c=text[i];if(c==='"'){if(quoted&&text[i+1]==='"'){field+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){row.push(field);field=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field=''}else field+=c}row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows}
+$('importAddresses').onclick=()=>$('addressFile').click();$('addressFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let rows=parseCSV(await f.text());if(!rows.length)throw Error('CSV is empty');let headers=rows[0].map(x=>x.trim().toLowerCase());let addr=headers.findIndex(x=>['address','street address','customer address'].includes(x));let lat=headers.findIndex(x=>['latitude','lat'].includes(x));let lon=headers.findIndex(x=>['longitude','lon','lng'].includes(x));if(addr<0)throw Error('CSV must have an Address column');rememberChange();let added=[];for(let row of rows.slice(1)){let address=(row[addr]||'').trim();if(!address)continue;let a=lat>=0?Number(row[lat]):NaN,b=lon>=0?Number(row[lon]):NaN;let valid=Number.isFinite(a)&&Number.isFinite(b)&&a>=-90&&a<=90&&b>=-180&&b<=180&&row[lat]?.trim()&&row[lon]?.trim();let s={address,lat:valid?a:null,lon:valid?b:null,status:'Pending',needsPin:!valid,addressSource:'import'};current().stops.push(s);added.push(s)}save();refresh();setStatus('Imported '+added.length+' addresses. Locating missing coordinates…');let matched=0;for(let s of added.filter(s=>s.needsPin)){if(await geocodeAddress(s))matched++}save();refresh();setStatus('Imported '+added.length+' addresses; '+matched+' additional locations found. Use Place pin for unmatched entries.')}catch(err){alert('CSV import: '+err.message)}e.target.value=''};
+// GPX import: a Route Builder GPX contains TWO different sets of coordinates:
+// <trkpt>/<rtept> make the blue driving line, while <wpt> are customer stops.
+// Preserve exported waypoint order; don't turn house pins into the road track.
+function gpxElements(xml,tag){return [...xml.getElementsByTagName('*')].filter(el=>el.localName===tag)}
+function gpxCoordinate(el){
+ if(!el.hasAttribute('lat')||!el.hasAttribute('lon'))return null;
+ const lat=Number(el.getAttribute('lat')),lon=Number(el.getAttribute('lon'));
+ return Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?[lat,lon]:null;
+}
+function gpxChildText(el,tag){
+ const child=[...el.children].find(x=>x.localName===tag);
+ return child?.textContent?.trim()||'';
+}
+function gpxStops(xml){
+ return gpxElements(xml,'wpt').map((el,i)=>{
+  const p=gpxCoordinate(el);if(!p)return null;
+  const name=gpxChildText(el,'name');
+  const description=gpxChildText(el,'desc');
+  // Prior Route Builder exports write the pickup status in <desc>.
+  const status=/^(pending|complete|completed|not out|not serviced|skipped|missed)$/i.test(description)?description:'Pending';
+  return {
+   id:'stop-'+Date.now()+'-'+i+'-'+Math.random().toString(36).slice(2,7),
+   lat:p[0],lon:p[1],address:name||'',status,
+   serviceState:'confirmed',pickupMode:activeMode==='commercial'?'either':'right',addressSource:'gpx-waypoint'
+  };
+ }).filter(Boolean);
+}
+$('importBtn').onclick=()=>$('file').click();
+$('file').onchange=async e=>{
+ const chosen=[...e.target.files];let imported=0,importedStops=0,importedTracks=0;
+ for(const f of chosen){
+  try{
+   const xml=new DOMParser().parseFromString(await f.text(),'application/xml');
+   if(xml.querySelector('parsererror'))throw Error('Invalid GPX XML');
+   let pts=gpxElements(xml,'trkpt').map(gpxCoordinate).filter(Boolean);
+   if(!pts.length)pts=gpxElements(xml,'rtept').map(gpxCoordinate).filter(Boolean);
+   const stops=gpxStops(xml);
+   if(!pts.length&&!stops.length)throw Error('No track, route points, or customer waypoints found');
+   rememberChange();
+   const r={
+    id:'route-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),
+    name:f.name.replace(/\.gpx$/i,''),mode:activeMode,points:pts,stops,
+    // GPX exporter writes waypoints in printed/customer order; preserve it.
+    manualOrderActive:stops.length>0,
+    originalLocked:true,originalImportedAt:new Date().toISOString()
+   };
+   library.push(r);active=r.id;imported++;importedStops+=stops.length;importedTracks+=pts.length;
+  }catch(err){alert(f.name+': '+err.message)}
+ }
+ e.target.value='';
+ if(imported){
+  stopListPage=0;selectedStopId=null;
+  save();refresh();fit();
+  setStatus('Imported '+imported+' route(s): '+importedTracks+' driving points and '+importedStops+' saved customer stops. GPX geometry and stop coordinates preserved.');
+  const scan=$('scanStatus');
+  if(scan)scan.textContent=importedStops+' customer waypoints were present in the GPX, so that is all the importer can restore. If more stops are missing, use Find additional addresses along GPX or import a separate customer CSV; any new locations require review.';
+ }
+};
+$('deleteRoute').onclick=()=>{if(library.length===1){alert('Keep at least one route.');return}if(confirm('Delete selected route and its pins?')){library=library.filter(x=>x.id!==active);active=library[0].id;save();refresh();fit()}};$('clearStops').onclick=()=>{const r=current();if(confirm('Clear all '+r.stops.length+' customer pins on this route? Your original GPX track will remain intact. You can run Find addresses along GPX to rebuild pickup candidates.')){rememberChange();r.stops=[];r.scanPausedAfterClear=false;r.suppressedScanPoints=[];save();refresh();$('scanStatus').textContent='Pins cleared; GPX track preserved. Use the GPX address finder to rebuild possible stops.';setStatus('Pins cleared. GPX address scanning remains available. Undo is available.')}};
+$('resetScannedPins').onclick=()=>{const r=current();const count=(r.suppressedScanPoints||[]).length;if(!r.scanPausedAfterClear&&!count){setStatus('No suppressed scan pins on this route.');return}if(!confirm('Allow automatic GPX scans to bring back '+count+' previously deleted/cleared locations on this route? This does not add pins until you run the scanner.'))return;rememberChange();r.scanPausedAfterClear=false;r.suppressedScanPoints=[];save();$('scanStatus').textContent='Address scanning is enabled again. Click Find addresses along GPX when you are ready.';setStatus('Deleted address scan exclusions reset for this route.');};
+function download(name,content,type){let url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000)}
+$('backup').onclick=()=>download('route-builder-library.json',JSON.stringify(library),'application/json');$('restoreBtn').onclick=()=>$('restore').click();$('restore').onchange=async e=>{try{let data=JSON.parse(await e.target.files[0].text());if(!Array.isArray(data)||!data.every(x=>x.id&&Array.isArray(x.points)&&Array.isArray(x.stops)))throw Error('Invalid backup');if(confirm('Replace current library with this backup?')){library=data;active=library[0].id;save();refresh();fit()}}catch(err){alert(err.message)}};
+$('exportCSV').onclick=()=>{let r=current(),rows=[['Order','Address','Latitude','Longitude','Status'],...r.stops.map((s,i)=>[i+1,s.address,s.lat??'',s.lon??'',s.status])];download(r.name.replace(/[^\w-]+/g,'_')+'_customers.csv',rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv')};
+$('printStops').onclick=()=>{const r=current();orderStopsByGPX(r);const stops=r.stops;const side=s=>activeMode==='commercial'?'Either side / check access':s.pickupMode==='opposite'?'Opposite side':s.bothSidesSinglePass?'Both sides / one pass':'Right side';const rows=stops.map((s,i)=>`<tr><td>${i+1}</td><td>□</td><td>${esc(s.address||'Address unavailable')}${Number.isFinite(s.lat)&&Number.isFinite(s.lon)?`<br><small>${s.lat.toFixed(5)}, ${s.lon.toFixed(5)}</small>`:'<br><small>Pin location not set</small>'}</td><td>${esc(s.status||'Pending')}</td><td>${side(s)}</td><td>${s.serviceState==='excluded'?'Excluded':s.serviceState==='candidate'?'Needs review':s.permanent?'Permanent':'Confirmed'}</td></tr>`).join('');$('printSheet').innerHTML=`<h1>${esc(r.name||'Route')} — Stop List</h1><div class="print-meta">${stops.length} stops • Printed ${new Date().toLocaleString()} • Order shown is the current stop-list order${r.mode==='commercial'?' (pin-placement order; edit to rearrange)':r.manualOrderActive?' (manually adjusted)':' (GPX sequence where available)'}</div><table><thead><tr><th class="col-order">Stop</th><th class="col-check">Done</th><th class="col-address">Customer / Address</th><th class="col-status">Pickup status</th><th class="col-side">${activeMode==='commercial'?'Access':'Pickup side'}</th><th class="col-notes">Stop type</th></tr></thead><tbody>${rows}</tbody></table><div class="print-foot">Use this sheet to verify the stop sequence. Address and pickup-side information may require driver confirmation.</div>`;window.print()};
+$('exportGPX').onclick=()=>{let r=current(),escapeXml=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));let xml='<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="Route Builder" xmlns="http://www.topografix.com/GPX/1/1">'+r.stops.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)).map((s,i)=>`<wpt lat="${s.lat}" lon="${s.lon}"><name>${escapeXml(s.address||'Stop '+(i+1))}</name><desc>${escapeXml(s.status)}</desc></wpt>`).join('')+'<trk><name>'+escapeXml(r.name)+'</name><trkseg>'+r.points.map(p=>`<trkpt lat="${p[0]}" lon="${p[1]}"/>`).join('')+'</trkseg></trk></gpx>';download(r.name.replace(/[^\w-]+/g,'_')+'.gpx',xml,'application/gpx+xml')};
+
+
+// Right-side residential route planning preview. Public OSM Overpass road data is not
+// a truck-safe navigation source. Every suggested route must be reviewed by the driver.
+window.routeCompareView='both';
+const optMiles=pts=>{let d=0;for(let i=1;i<pts.length;i++)d+=optDist(pts[i-1],pts[i]);return d/1609.344};
+function optDist(a,b){const R=6371000,rad=Math.PI/180,dy=(b[0]-a[0])*rad,dx=(b[1]-a[1])*rad;let h=Math.sin(dy/2)**2+Math.cos(a[0]*rad)*Math.cos(b[0]*rad)*Math.sin(dx/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)))}
+function optProjection(p,a,b){let c=Math.cos(p[0]*Math.PI/180),ax=a[1]*c,ay=a[0],bx=b[1]*c,by=b[0],px=p[1]*c,py=p[0],dx=bx-ax,dy=by-ay;let t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1)));let x=ax+t*dx,y=ay+t*dy;return {t,d:Math.hypot(px-x,py-y)*111195,cross:dx*(py-ay)-dy*(px-ax)};}
+function optShortest(graph,start,goal){if(start===goal)return {cost:0,path:[start]};let dist=new Map([[start,0]]),prev=new Map(),done=new Set(),heap=[[0,start]];while(heap.length){heap.sort((a,b)=>b[0]-a[0]);let [d,u]=heap.pop();if(done.has(u))continue;done.add(u);if(u===goal){let path=[goal],at=goal;while(prev.has(at)){at=prev.get(at);path.push(at)}return {cost:d,path:path.reverse()}}for(let e of graph.get(u)||[]){let nd=d+e.cost;if(nd<(dist.get(e.to)??Infinity)){dist.set(e.to,nd);prev.set(e.to,u);heap.push([nd,e.to])}}}return null;}
+function optRenderInfo(){let r=current(),orig=r.optimizedFrom?library.find(x=>x.id===r.optimizedFrom):null;let el=$('optimizeMetrics');if(!el)return;const btns=document.querySelectorAll('[data-view]');btns.forEach(b=>b.classList.toggle('active',b.dataset.view===window.routeCompareView));if(orig){let a=optMiles(orig.points),b=optMiles(r.points);el.textContent=`Original ${a.toFixed(2)} mi • Suggested ${b.toFixed(2)} mi • ${r.stops.length} stops • ${r.reviewCount||0} stops need review. Estimated map distance, not verified road mileage.`;$('optimizeReview').textContent=r.optimizerNotes||'Review all stop sides and road restrictions before driving.'}else{el.textContent=`${r.stops.length} customer stops • ${r.points.length} GPX points. Optimize to create a separate proposed route.`;$('optimizeReview').textContent='The proposed route will be saved separately. A GPX without addresses cannot identify which homes need service.'}}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{window.routeCompareView=b.dataset.view;optRenderInfo();refresh()});
+const oldRefresh=refresh;
+// Update the comparison statistics after the normal refresh completes.
+refresh=function(){oldRefresh();optRenderInfo()};
+// Scan the GPX in bounded sections rather than one large bounding rectangle.
+// The driver marks the first residential pickup to omit the incoming travel leg.
+let choosingFirstPickup=false;
+window.selectGPXStart=null;
+function nearestGPXIndex(pts,p){let best=Infinity,index=0;for(let i=0;i<pts.length;i++){const d=optDist(pts[i],[p.lat,p.lng]);if(d<best){best=d;index=i}}return {index,distance:best}}
+$('setFirstPickup').onclick=()=>{
+ const r=current();if(r.points.length<2){alert('Import and select a GPX route first.');return}
+ choosingFirstPickup=true;
+ $('firstPickupStatus').textContent='Click the first service stop on the map. The incoming travel track will be skipped.';
+ window.selectGPXStart=latlng=>{
+  const n=nearestGPXIndex(current().points,latlng);
+  if(n.distance>180){alert('That point is more than 180 meters from the GPX track. Zoom in and click near the track.');return}
+  current().firstPickupIndex=n.index;save();refresh();
+  $('firstPickupStatus').textContent=`First pickup starts near GPX point ${n.index+1} of ${current().points.length}. Earlier track points are excluded from address scanning.`;
+  choosingFirstPickup=false;window.selectGPXStart=null;
+ };
+};
+function scanChunks(pts,baseIndex=0){
+ const chunks=[];let from=0;
+ while(from<pts.length-1){
+  let to=from+1,minLat=pts[from][0],maxLat=minLat,minLon=pts[from][1],maxLon=minLon;
+  while(to<pts.length){
+   const p=pts[to],a=Math.min(minLat,p[0]),b=Math.max(maxLat,p[0]),c=Math.min(minLon,p[1]),d=Math.max(maxLon,p[1]);
+   if(to>from+1 && (to-from>=240 || b-a>.012 || d-c>.012))break;
+   minLat=a;maxLat=b;minLon=c;maxLon=d;to++;
+  }
+  chunks.push({points:pts.slice(from,to),startIndex:baseIndex+from,bounds:[minLon-.00055,minLat-.00055,maxLon+.00055,maxLat+.00055]});
+  from=to-1;
+ }
+ return chunks;
+}
+async function gisPage(bounds,offset){
+ const [west,south,east,north]=bounds;
+ const params=new URLSearchParams({f:'json',where:"cnty_name = 'Benton'",geometry:JSON.stringify({xmin:west,ymin:south,xmax:east,ymax:north,spatialReference:{wkid:4326}}),geometryType:'esriGeometryEnvelope',inSR:'4326',spatialRel:'esriSpatialRelIntersects',outSR:'4326',outFields:'adr_num,adr_num_comp,pstr_fulnam,pre_dir,pstr_nam,pstr_type,psuf_dir,adr_unit_typ,adr_unit_id,cnty_name',returnGeometry:'true',resultOffset:String(offset),resultRecordCount:'200'});
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),18000);
+ try{
+  const resp=await fetch(ADDRESS_SERVICE+'?'+params.toString(),{signal:controller.signal});
+  if(!resp.ok)throw Error('GIS returned HTTP '+resp.status);
+  const data=await resp.json();if(data.error)throw Error(data.error.message||'GIS query failed');
+  return data.features||[];
+ }finally{clearTimeout(timeout)}
+}
+$('scanGPXAddresses').onclick=async()=>{
+ const r=current(),btn=$('scanGPXAddresses'),msg=$('scanStatus');
+ // A user clicking Scan explicitly requests a rebuild, including pins deleted earlier.
+ r.scanPausedAfterClear=false;
+ r.suppressedScanPoints=[];
+ if(r.points.length<2){alert('Import a GPX track first.');return}
+ if(r.firstPickupIndex==null && !confirm('No first service stop has been marked. Scan the ENTIRE GPX including travel roads? Choose Cancel to set the first stop on the map.'))return;
+ const pts=r.points.slice(r.firstPickupIndex||0).filter(p=>Array.isArray(p)&&p.every(Number.isFinite));
+ if(pts.length<2){alert('First pickup is too close to the end of this track.');return}
+ const chunks=scanChunks(pts,r.firstPickupIndex||0);
+ if(chunks.length>160){alert('This route needs more than 160 GIS requests. Select a shorter residential section first.');return}
+ const commercialScan=(r.mode||activeMode)==='commercial',maxScanDistance=Number($('scanRange')?.value)||45;
+ btn.disabled=true;let added=0,failed=0,limited=0,checked=0;
+ const seen=new Set(r.stops.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)).map(s=>removedPointKey(s.lat,s.lon)));
+ try{
+  for(let k=0;k<chunks.length;k++){
+   const chunk=chunks[k];msg.textContent=`Scanning ${commercialScan?'front-loader (either side)':'residential (right-side)'} section ${k+1} of ${chunks.length} • ${added} candidate addresses found…`;
+   try{
+    const deepScan=!!$('scanBothGis')?.checked;
+    // Normal scan retains the existing Arkansas GIS behavior. Deep scan additionally
+    // checks Benton County's address-point service; all results remain unconfirmed.
+    const providers=deepScan?['Arkansas GIS','Benton County GIS']:['Arkansas GIS'];
+    let providerSuccess=0;
+    for(const provider of providers){
+     const county=provider==='Benton County GIS',pageSize=county?500:200,maxRecords=deepScan?4000:1600;
+     try{
+      for(let offset=0;offset<maxRecords;offset+=pageSize){
+       const records=county?await missingArcgisPage(provider,chunk.bounds,offset):await gisPage(chunk.bounds,offset);
+       for(const f of records){
+        const a=county?null:f.attributes||{},g=county?null:f.geometry||{};
+        const lat=county?f.lat:g.y,lon=county?f.lon:g.x;
+        if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+        const key=removedPointKey(lat,lon);if(seen.has(key))continue;
+        const point=[lat,lon],address=county?f.address:addressText(a);
+        if(!address)continue;
+        const grayStone=!commercialScan&&/\bgray\s*stone\s*(circle|cir|cr)\b/i.test(address);
+        let best=null,bestLocalIndex=0;
+        for(let i=1;i<chunk.points.length;i++){
+         const segA=chunk.points[i-1],segB=chunk.points[i];
+         if(optDist(segA,segB)>250)continue;
+         const pr=optProjection(point,segA,segB);
+         if(pr.d>maxScanDistance)continue;
+         if(!commercialScan&&!grayStone&&pr.cross>=-1e-10)continue;
+         if(!best||pr.d<best.d){best=pr;bestLocalIndex=i-1+pr.t}
+        }
+        if(!best)continue;
+        // Avoid duplicated sources assigning a second pin to the same address.
+        if(r.stops.some(st=>st.address&&missingNormalizeAddress(st.address)===missingNormalizeAddress(address)&&optDist([st.lat,st.lon],point)<65))continue;
+        r.stops.push({lat,lon,address,status:'Pending',serviceState:'candidate',pickupMode:commercialScan?'either':'right',bothSidesSinglePass:grayStone,gpxSequence:chunk.startIndex+bestLocalIndex,addressSource:provider+' GPX scan'});
+        seen.add(key);added++;
+       }
+       if(records.length<pageSize)break;
+       if(offset+pageSize>=maxRecords)limited++;
+      }
+      providerSuccess++;
+     }catch(err){console.warn('Address section '+(k+1)+' '+provider,err);failed++}
+    }
+    if(!providerSuccess)throw Error('No address source succeeded for this section');
+    checked++;
+   }catch(err){console.warn('Address section '+(k+1),err)}
+   // Preserve results incrementally in case a public GIS server fails later.
+   if(k%4===3){save()}
+  }
+  orderStopsByGPX(r);save();refresh();
+  msg.textContent=`Scan complete: ${added} new yellow candidate addresses on ${commercialScan?'either side of the front-loader route':'eligible residential right-side passes'} within ${maxScanDistance} m. ${checked}/${chunks.length} sections checked; ${failed} source requests failed; ${limited} hit the record limit.${added===0?' No additional addresses found. Check service start, GIS coverage and failed sections.':''} These are NOT verified customers: review each before approving. Deep review may find addresses from adjacent roads.${maxScanDistance>45?' Wider search can include adjacent roads.':''}`;
+ }catch(err){save();refresh();msg.textContent='Scan stopped: '+err.message+'. '+added+' candidates already saved.'}
+ finally{btn.disabled=false}
+};
+$('optimizeRight').onclick=async()=>{
+ let button=$('optimizeRight'),src=current();if(src.optimizedFrom){let original=library.find(r=>r.id===src.optimizedFrom);if(original)src=original}
+ const stops=src.stops.filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&s.serviceState!=='candidate'&&s.serviceState!=='excluded');
+ if(!stops.length){alert('Add or import customer addresses with map locations first. A GPX alone does not tell us which houses need pickup.');return}
+ if(stops.length>350){alert('For this preview, optimize up to 350 located stops at a time. Split the route into smaller neighborhoods.');return}
+ let latitudes=stops.map(s=>s.lat),longitudes=stops.map(s=>s.lon);
+ if(src.points.length){latitudes.push(src.points[0][0]);longitudes.push(src.points[0][1])}
+ let south=Math.min(...latitudes)-.004,north=Math.max(...latitudes)+.004,west=Math.min(...longitudes)-.004,east=Math.max(...longitudes)+.004;
+ if((north-south)*(east-west)>.018){alert('This area is too large for one public road-data request. Split it into smaller neighborhoods.');return}
+ button.disabled=true;button.textContent='Loading neighborhood roads…';
+ try{
+  const query=`[out:json][timeout:45];way[highway~"^(residential|living_street|tertiary|secondary|unclassified|service|primary)$"](${south},${west},${north},${east});out body;>;out skel qt;`;
+  const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.nchc.org.tw/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+  let data=null,failures=[];
+  for(const endpoint of endpoints){
+   button.textContent='Loading neighborhood roads ('+(failures.length+1)+'/'+endpoints.length+')…';
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),40000);
+   try{const response=await fetch(endpoint,{method:'POST',body:new URLSearchParams({data:query}),signal:controller.signal});
+    if(!response.ok)throw Error('HTTP '+response.status);
+    const result=await response.json();if(!Array.isArray(result.elements))throw Error('Invalid road data');data=result;break;
+   }catch(e){failures.push(e.name==='AbortError'?'Request timed out':e.message||'Network request failed')}
+   finally{clearTimeout(timer)}
+  }
+  if(!data)throw Error('Public road-data servers are unavailable ('+failures.join('; ')+'). Try a smaller neighborhood or retry later.');
+  const nodes=new Map(),graph=new Map(),segments=[];
+  for(let el of data.elements||[])if(el.type==='node')nodes.set(el.id,[el.lat,el.lon]);
+  const add=(u,v,len)=>{if(!graph.has(u))graph.set(u,[]);graph.get(u).push({to:v,cost:len})};
+  for(let w of data.elements||[]){if(w.type!=='way'||!w.nodes?.length)continue;let oneway=w.tags?.oneway==='yes'||w.tags?.oneway==='1',reverse=w.tags?.oneway==='-1';if(w.tags?.junction==='roundabout')oneway=true;
+   for(let i=1;i<w.nodes.length;i++){let u=w.nodes[i-1],v=w.nodes[i],a=nodes.get(u),b=nodes.get(v);if(!a||!b)continue;let len=optDist(a,b);if(len<.1)continue;segments.push({u,v,a,b,len,oneway,reverse,way:w.id,name:w.tags?.name||'Unnamed road'});if(!reverse)add(u,v,len);if(!oneway||reverse)add(v,u,len)}
+  }
+  if(!segments.length)throw Error('No usable streets found in this area.');
+  button.textContent='Finding right-side service passes…';
+  let tasks=new Map(),review=[];
+  for(let s of stops){let point=[s.lat,s.lon],best=null;for(let seg of segments){let p=optProjection(point,seg.a,seg.b);if(!best||p.d<best.p.d)best={seg,p}}
+   if(!best||best.p.d>85){review.push((s.address||'Unknown stop')+' — far from mapped street');continue}
+   let {seg,p}=best;let onRight=p.cross<=0;
+   // Blue exception: follow the nearest original GPX travel direction, rather
+   // than creating a return pass solely to put the house on the right.
+   if(s.pickupMode==='opposite'&&src.points.length>1){
+    let nearest=null;for(let j=1;j<src.points.length;j++){let q=optProjection(point,src.points[j-1],src.points[j]);if(!nearest||q.d<nearest.d)nearest={q,a:src.points[j-1],b:src.points[j]}}
+    if(nearest){let c=Math.cos(point[0]*Math.PI/180),rx=(seg.b[1]-seg.a[1])*c,ry=seg.b[0]-seg.a[0],gx=(nearest.b[1]-nearest.a[1])*c,gy=nearest.b[0]-nearest.a[0];onRight=rx*gx+ry*gy>=0;}
+   }
+   let u=onRight?seg.u:seg.v,v=onRight?seg.v:seg.u;
+   if(Math.abs(p.cross)<.00000001)review.push((s.address||'Unknown stop')+' — pickup side uncertain');
+   if((seg.oneway&&u===seg.v)||(seg.reverse&&u===seg.u)){review.push((s.address||'Unknown stop')+' — one-way/right-side conflict');continue}
+   let key=u+':'+v;if(!tasks.has(key))tasks.set(key,{u,v,len:seg.len,stops:[],name:seg.name});tasks.get(key).stops.push(s);
+  }
+  if(!tasks.size)throw Error('No addresses could be assigned to a right-side service pass. Check their map pins.');
+  let startIndex=Number.isInteger(src.firstPickupIndex)?src.firstPickupIndex:0;let startPoint=src.points.length?src.points[startIndex]:[stops[0].lat,stops[0].lon],start=[...nodes.keys()].reduce((best,id)=>optDist(nodes.get(id),startPoint)<optDist(nodes.get(best),startPoint)?id:best,segments[0].u);
+  let pending=[...tasks.values()],path=[start],ordered=[],total=0,iterations=0;
+  while(pending.length&&iterations++<400){let best=null;for(let i=0;i<pending.length;i++){let task=pending[i],approach=optShortest(graph,path[path.length-1],task.u);if(!approach)continue;let score=approach.cost+task.len;if(!best||score<best.score)best={i,task,approach,score}}
+   if(!best)break;
+   path.push(...best.approach.path.slice(1),best.task.v);total+=best.score;ordered.push(...best.task.stops);pending.splice(best.i,1);
+  }
+  for(let t of pending)for(let s of t.stops)review.push((s.address||'Unknown stop')+' — disconnected street');
+  if(!ordered.length)throw Error('Could not connect any right-side service passes.');
+  let proposed={id:'route-'+Date.now()+'-optimized',name:src.name+' — right-side proposal',mode:src.mode||'residential',points:path.map(id=>nodes.get(id)).filter(Boolean),stops:ordered.map(s=>({...s})),optimizedFrom:src.id,reviewCount:review.length,optimizerNotes:`PREVIEW ONLY: ${tasks.size-pending.length} mapped service segments; manual blue opposite-side stops require safety review; ${review.length} stop-side/road issues. ${review.slice(0,4).join(' | ')||'Check all turns and pickup sides.'} Uses public OSM data; not truck navigation.`,optimizedAt:new Date().toISOString()};
+  library.push(proposed);active=proposed.id;window.routeCompareView='both';save();refresh();fit();replayStop();replayBuild();
+  alert(`Created a separate right-side proposal with ${ordered.length} assigned stops. ${review.length} stops need review. Original GPX is unchanged. Review the road directions before driving.`);
+ }catch(e){alert('Optimization could not finish: '+e.message+'\nYour original route was not changed.')}finally{button.disabled=false;button.textContent='Optimize right-side pickups'}
+};
+// Route replay: distance-based interpolation between consecutive GPX points.
+// Duration is a visualization control, not a claim about actual driving time.
+let replayMarker=null,replayLine=null,replayPlaying=false,replayPosition=0,replayLastFrame=null,replayFrame=null,replayDistances=[],replayTotal=0,replayRouteId=null;
+function replayBuild(){
+ const r=current();replayRouteId=r.id;replayDistances=[0];replayTotal=0;
+ for(let i=1;i<r.points.length;i++){
+  const a=r.points[i-1],b=r.points[i],rad=Math.PI/180,dLat=(b[0]-a[0])*rad,dLon=(b[1]-a[1])*rad;
+  const h=Math.sin(dLat/2)**2+Math.cos(a[0]*rad)*Math.cos(b[0]*rad)*Math.sin(dLon/2)**2;
+  replayTotal+=3958.7613*2*Math.asin(Math.min(1,Math.sqrt(h)));replayDistances.push(replayTotal);
+ }
+ replayPosition=0;replayDraw();
+}
+function replayStop(){replayPlaying=false;replayLastFrame=null;if(replayFrame!==null)cancelAnimationFrame(replayFrame);replayFrame=null;document.getElementById('replayPlay').textContent='▶ Play'}
+function replayPoint(miles){
+ const pts=current().points;if(!pts.length)return null;if(pts.length===1||replayTotal<=0)return pts[0];
+ let lo=0,hi=replayDistances.length-1;
+ while(lo<hi){const mid=(lo+hi)>>1;if(replayDistances[mid]<miles)lo=mid+1;else hi=mid}
+ const i=Math.max(1,lo),a=pts[i-1],b=pts[i],d=replayDistances[i]-replayDistances[i-1];
+ const t=d>0?Math.max(0,Math.min(1,(miles-replayDistances[i-1])/d)):1;
+ return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+}
+function replayDraw(){
+ if(!map)return;const pts=current().points,seek=document.getElementById('replaySeek');
+ if(!pts.length){if(replayMarker){map.removeLayer(replayMarker);replayMarker=null}if(replayLine){map.removeLayer(replayLine);replayLine=null}seek.disabled=true;document.getElementById('replayProgress').textContent='No GPX track';return}
+ seek.disabled=false;const fraction=Math.max(0,Math.min(1,replayPosition));seek.value=String(Math.round(fraction*1000));
+ const point=replayPoint(fraction*replayTotal);if(!replayMarker){replayMarker=L.circleMarker(point,{radius:8,color:'#fff',weight:3,fillColor:'#f97316',fillOpacity:1}).addTo(map);replayMarker.bindTooltip('Replay position',{direction:'top'})}else replayMarker.setLatLng(point);
+ document.getElementById('replayProgress').textContent=`${Math.round(fraction*100)}% • ${(fraction*replayTotal).toFixed(1)} / ${replayTotal.toFixed(1)} mi`;
+ if(document.getElementById('replayFollow').checked&&replayPlaying)map.panTo(point,{animate:false});
+}
+function replayTick(timestamp){
+ if(!replayPlaying)return;
+ if(replayLastFrame!==null){const elapsed=Math.min(200,timestamp-replayLastFrame)/1000;const speed=Number(document.getElementById('replaySpeed').value)||1;
+ // Baseline playback covers 1 mile in 10 seconds at 1x, irrespective of GPX timestamps.
+ replayPosition+=replayTotal>0?elapsed*speed/(10*replayTotal):1;
+ if(replayPosition>=1){replayPosition=1;replayDraw();replayStop();return}}
+ replayLastFrame=timestamp;replayDraw();replayFrame=requestAnimationFrame(replayTick);
+}
+document.getElementById('replayPlay').onclick=()=>{
+ if(replayPlaying){replayStop();return}
+ if(replayRouteId!==current().id)replayBuild();if(!current().points.length)return;
+ if(replayPosition>=1)replayPosition=0;
+ replayPlaying=true;replayLastFrame=null;document.getElementById('replayPlay').textContent='❚❚ Pause';replayFrame=requestAnimationFrame(replayTick);
+};
+document.getElementById('replayRestart').onclick=()=>{replayStop();replayPosition=0;replayDraw()};
+document.getElementById('replaySeek').oninput=e=>{replayPosition=Number(e.target.value)/1000;replayLastFrame=null;replayDraw()};
+const originalReplayRouteChange=document.getElementById('routes').onchange;
+document.getElementById('routes').onchange=e=>{replayStop();originalReplayRouteChange(e);replayBuild()};
+const originalReplayDelete=document.getElementById('deleteRoute').onclick;
+document.getElementById('deleteRoute').onclick=e=>{replayStop();originalReplayDelete(e);replayBuild()};
+const originalReplayFile=document.getElementById('file').onchange;
+document.getElementById('file').onchange=async e=>{await originalReplayFile(e);replayStop();replayBuild()};
+const originalReplayRestore=document.getElementById('restore').onchange;
+document.getElementById('restore').onchange=async e=>{await originalReplayRestore(e);replayStop();replayBuild()};
+
+window.startRouteBuilder=()=>{init();fit();replayBuild();};
+
+</script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script>
+/* Protected demo: sign in to a separate Supabase Auth user. The RLS-filtered
+   demo user's own route_libraries row supplies the copy of customers/GPX.
+   No login secret or route records are embedded in the public HTML.
+   Demo changes are local to the current tab and are never uploaded. */
+(function(){
+  const get=id=>document.getElementById(id);
+  const url='https://kjybascmkdxzfpkeache.supabase.co';
+  const anon='sb_publishable_SERoskeMSXGyYVLY1t_ZcA_BrbqAQrC';
+  let busy=false;
+  // Remember only the email on this device. Never retain the password or auth token.
+  const DEMO_EMAIL_KEY='routebuilder-demo-email';
+  try { get('loginEmail').value=localStorage.getItem(DEMO_EMAIL_KEY)||''; } catch(e) { get('loginEmail').value=''; }
+  get('loginEmail').placeholder='Demo account email';
+  const emailForget=document.createElement('button');
+  emailForget.type='button';emailForget.textContent='Forget saved email';
+  emailForget.style.cssText='display:block;margin:5px 0 9px;font-size:12px';
+  emailForget.onclick=()=>{try{localStorage.removeItem(DEMO_EMAIL_KEY)}catch(e){}get('loginEmail').value='';get('loginEmail').focus()};
+  get('loginEmail').closest('label').insertAdjacentElement('afterend',emailForget);
+  get('loginPass').placeholder='Demo password';
+  get('loginBtn').textContent='Sign in to Demo';
+  get('loginError').textContent='A separate demo account is required. Ask the owner for its login details.';
+  const banner=get('demoBanner');
+  if(banner)banner.textContent='DEMO MODE — Private customer route copy • Changes reset on refresh • No changes to master data';
+  const oldSetup=get('setupBtn');if(oldSetup)oldSetup.style.display='none';
+  const oldSettings=get('sbUrl')?.closest('div');if(oldSettings)oldSettings.style.display='none';
+  get('loginBtn').onclick=async()=>{
+    if(busy)return;
+    const email=get('loginEmail').value.trim(),password=get('loginPass').value;
+    if(!email||!password){get('loginError').textContent='Enter the demo account email and password.';return;}
+    busy=true;get('loginBtn').disabled=true;get('loginError').textContent='Signing in to demo…';
+    try{
+      if(!window.supabase?.createClient)throw Error('Authentication library failed to load. Check your connection.');
+      const client=window.supabase.createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'routebuilder-demo-only'}});
+      const {data:auth,error:authError}=await client.auth.signInWithPassword({email,password});
+      if(authError)throw authError;
+      try { localStorage.setItem(DEMO_EMAIL_KEY,email); } catch(e) {}
+      const {data:row,error:readError}=await client.from('route_libraries').select('data').eq('user_id',auth.user.id).maybeSingle();
+      if(readError)throw Error('Unable to open demo routes: '+readError.message);
+      if(!Array.isArray(row?.data)||!row.data.length)throw Error('This demo account has no route copy yet. The owner must load a route backup into this demo account first.');
+      // Download only the demo user's separate library; never query the master user's row.
+      library=JSON.parse(JSON.stringify(row.data));
+      library.forEach(r=>{if(!r.mode)r.mode='residential'});
+      activeMode=library[0]?.mode||'residential';active=library[0].id;
+      sessionStorage.setItem('routebuilder_mode',activeMode);
+      get('secureGate').style.display='none';
+      get('accountSettingsBtn').textContent='Display Settings';
+      ['changeAccountPassword','currentAccountPassword','newAccountPassword','confirmAccountPassword'].forEach(id=>{if(get(id))get(id).disabled=true});
+      get('signOut').textContent='Exit Demo';
+      get('signOut').onclick=()=>{sessionStorage.removeItem(KEY);sessionStorage.removeItem('routebuilder_mode');location.href='index.html';};
+      window.scheduleCloudSave=()=>{};
+      window.startRouteBuilder();
+      get('saveStatus').textContent='DEMO: All changes reset on refresh. Your master routes are protected.';
+      // Not storing demo credentials or customer backup in HTML or URL.
+      get('loginPass').value='';
+    }catch(e){get('loginError').textContent=e.message||'Unable to sign in.';}
+    finally{busy=false;get('loginBtn').disabled=false;}
+  };
+  get('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')get('loginBtn').click()});
+  get('accountSettingsBtn').onclick=()=>{get('accountSettings').style.display='flex';get('passwordChangeStatus').textContent='Demo users cannot change account passwords here.'};
+  get('closeAccountSettings').onclick=()=>{get('accountSettings').style.display='none';};
+  get('accountSettings').addEventListener('click',e=>{if(e.target===get('accountSettings'))get('accountSettings').style.display='none';});
+})();
+</script><script id="rb-upgrade-script">
+// Self-contained UI features: no GPX scanner, customer routing, or Supabase policy changes.
+(function(){
+const onReady=()=>{
+ const byId=id=>document.getElementById(id);
+ // Collapsible sections: preserve original descendants and IDs, default closed.
+ const sections=[['missingHousePanel','Find Missing Houses','missingTotals'],['gpxAddressPanel','Address search along GPX','scanStatus'],['rbCustomerStopPanel','Customer stops',null]];
+ const stopTitle=byId('stopListTitle');
+ if(stopTitle&&stopTitle.closest('.panel'))stopTitle.closest('.panel').id='rbCustomerStopPanel';
+ sections.forEach(([id,title,summaryId])=>{
+   const panel=byId(id);if(!panel||panel.querySelector('.rb-fold-header'))return;
+   const heading=panel.querySelector(':scope > b');
+   const inside=document.createElement('div');inside.className='rb-fold-body';
+   while(heading.nextSibling)inside.append(heading.nextSibling);
+   const header=document.createElement('button');header.type='button';header.className='rb-fold-header';
+   const label=document.createElement('span');label.textContent=title;
+   const arrow=document.createElement('span');arrow.className='rb-fold-arrow';
+   header.append(label,arrow);panel.replaceChild(header,heading);panel.append(inside);
+   // Every section starts collapsed; remember expansion within current browser session.
+   let open=sessionStorage.getItem('rb_fold_'+id)==='open';
+   const update=()=>{inside.hidden=!open;arrow.textContent=open?'▴':'▾';header.setAttribute('aria-expanded',String(open));};
+   header.addEventListener('click',()=>{open=!open;sessionStorage.setItem('rb_fold_'+id,open?'open':'closed');update()});
+   update();
+ });
+ // Display mode (view only) does not mutate customer or route information.
+ rbAddressDisplayMode = 'clean';
+ const display=byId('rbAddressDisplayMode');
+ if(display){
+   const saved=localStorage.getItem('rb_address_display_mode');
+   rbAddressDisplayMode=['clean','numbers','review'].includes(saved)?saved:'clean';
+   display.value=rbAddressDisplayMode;
+   const update=()=>{
+     document.body.classList.toggle('rb-clean-view',rbAddressDisplayMode==='clean');
+     document.body.classList.toggle('rb-review-view',rbAddressDisplayMode==='review');
+     if(typeof renderStopPins==='function')renderStopPins();
+     if(typeof renderMissingPins==='function')renderMissingPins();
+   };
+   display.addEventListener('change',()=>{rbAddressDisplayMode=display.value;localStorage.setItem('rb_address_display_mode',display.value);update()});
+   update();
+ }
+ // Separate route-events layer. Dump markers do not enter route.stops and never affect numbering.
+ let dumpLayer=null,placement=null;
+ const eventNames={leave:'Leave route to dump',site:'Dump site',resume:'Resume collections'};
+ const eventGlyphs={leave:'↗',site:'▣',resume:'↩'};
+ function route(){return typeof current==='function'?current():null}
+ function cancel(){placement=null;const b=byId('dumpPlaceCancel');if(b)b.disabled=true;const st=byId('dumpPlaceStatus');if(st)st.textContent='Choose a marker type, then click the map to place it.';if(typeof map!=='undefined'&&map)map.getContainer().style.cursor='';}
+ function draw(){
+   if(typeof map==='undefined'||!map)return;
+   if(!dumpLayer)dumpLayer=L.layerGroup().addTo(map);
+   dumpLayer.clearLayers();
+   const r=route();if(!r)return;
+   const events=Array.isArray(r.dumpMarkers)?r.dumpMarkers:[];
+   events.forEach((d,i)=>{
+     if(!Number.isFinite(d.lat)||!Number.isFinite(d.lon)||!eventNames[d.kind])return;
+     const color=pinColors?.[d.kind==='leave'?'dumpLeave':d.kind==='site'?'dumpSite':'dumpResume']||'#8b5cf6';
+     const icon=L.divIcon({className:'',html:`<span class="rb-dump-marker" style="background:${color}">${eventGlyphs[d.kind]}</span>`,iconSize:[25,25],iconAnchor:[12,12]});
+     const marker=L.marker([d.lat,d.lon],{icon,draggable:true}).addTo(dumpLayer);
+     marker.bindPopup(()=>`<strong>${eventNames[d.kind]}</strong><p>${String(d.notes||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))||'No notes'}</p><button type="button" data-dump-action="note" data-id="${d.id}">Edit notes</button> <button type="button" data-dump-action="remove" data-id="${d.id}">Delete marker</button>`);
+     marker.on('dragstart',()=>{if(typeof rememberChange==='function')rememberChange()});
+     marker.on('dragend',()=>{const pos=marker.getLatLng();d.lat=pos.lat;d.lon=pos.lng;if(typeof save==='function')save();draw()});
+   });
+   const list=byId('dumpEventList');if(list)list.innerHTML=events.length?events.map((d,i)=>`<div class="rb-dump-row"><span style="font-size:12px">${i+1}. ${eventNames[d.kind]||'Dump marker'}${d.notes?' • '+String(d.notes).replace(/[&<>]/g,''):''}</span><button type="button" data-dump-action="zoom" data-id="${d.id}">Map</button></div>`).join(''):'No dump-trip markers placed on this route.';
+ }
+ const buttons=document.querySelectorAll('[data-dump-place]');
+ buttons.forEach(b=>b.addEventListener('click',()=>{
+   placement=b.dataset.dumpPlace;
+   byId('dumpPlaceCancel').disabled=false;
+   byId('dumpPlaceStatus').textContent='Click the map to mark: '+eventNames[placement];
+   if(typeof map!=='undefined'&&map)map.getContainer().style.cursor='crosshair';
+ }));
+ byId('dumpPlaceCancel')?.addEventListener('click',cancel);
+ document.addEventListener('click',e=>{
+   const btn=e.target.closest('[data-dump-action]');if(!btn)return;
+   const r=route(),d=r?.dumpMarkers?.find(x=>x.id===btn.dataset.id);if(!d)return;
+   if(btn.dataset.dumpAction==='zoom'){map.setView([d.lat,d.lon],18);return}
+   if(btn.dataset.dumpAction==='remove'){
+     if(typeof rememberChange==='function')rememberChange();
+     r.dumpMarkers=r.dumpMarkers.filter(x=>x.id!==d.id);
+   }else if(btn.dataset.dumpAction==='note'){
+     const note=prompt('Dump trip notes (location, directions, or landfill):',d.notes||'');
+     if(note===null)return;
+     if(typeof rememberChange==='function')rememberChange();d.notes=note.slice(0,500);
+   }
+   if(typeof save==='function')save();map.closePopup();draw();
+ });
+ // Capture map click before the ordinary add-customer handler: stop propagation only in placement mode.
+ function attachMap(){
+   if(typeof map==='undefined'||!map){setTimeout(attachMap,100);return}
+   map.on('moveend',draw);
+   map.on('zoomend',draw);
+   draw();
+ }
+ // Capture at DOM level (before Leaflet turns DOM click into addStop), and allow a custom Leaflet handler.
+ function setupCapture(){
+   if(typeof map==='undefined'||!map){setTimeout(setupCapture,100);return}
+   map.getContainer().addEventListener('click',e=>{
+     if(!placement)return;
+     const bounds=map.getContainer().getBoundingClientRect();
+     const xy=L.point(e.clientX-bounds.left,e.clientY-bounds.top);
+     const pos=map.containerPointToLatLng(xy);
+     const r=route();if(!r)return;
+     e.stopPropagation();e.preventDefault();
+     if(typeof rememberChange==='function')rememberChange();
+     if(!Array.isArray(r.dumpMarkers))r.dumpMarkers=[];
+     r.dumpMarkers.push({id:'dump-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),kind:placement,lat:pos.lat,lon:pos.lng,notes:''});
+     if(typeof save==='function')save();cancel();draw();
+   },true);
+ }
+ // redraw on route changes/history, not limited to map repositioning
+ const originalRefresh=typeof refresh==='function'?refresh:null;
+ if(originalRefresh){window.rbDumpDraw=draw;
+   const select=byId('routes');select?.addEventListener('change',()=>setTimeout(draw,20));
+   byId('truckMode')?.addEventListener('change',()=>setTimeout(draw,20));
+   byId('undoBtn')?.addEventListener('click',()=>setTimeout(draw,20));
+   byId('redoBtn')?.addEventListener('click',()=>setTimeout(draw,20));
+ }
+ setupCapture();attachMap();
+};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',onReady);else onReady();
+})();
+</script></body></html>
