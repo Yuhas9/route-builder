@@ -1,0 +1,16 @@
+{
+  "name": "Route Builder",
+  "short_name": "Route Builder",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6f7",
+  "theme_color": "#275c76",
+  "icons": [
+    {
+      "src": "route-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

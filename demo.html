@@ -104,6 +104,7 @@ body.rb-review-view .missing-marker{box-shadow:0 0 0 3px #fff,0 0 0 5px #eab308}
 <button type="button" id="mapHouseNumbers" title="Show or hide clickable Arkansas GIS house numbers at street zoom (17+)">⌂ House Numbers: On</button>
 <span class="bulk-pin-legend" title="Confirmed customer stops show pink on the map" style="font-size:11px;font-weight:600;white-space:nowrap;color:#831843;background:#fce7f3;border-radius:6px;padding:4px 6px">● Confirmed: Pink</span> <button type="button" id="bulkCircle" title="Click and drag on the map to draw a circle around pins">◯ Circle</button>
 <button type="button" id="bulkSingle" title="Select or deselect individual pins">☑ Single pins</button>
+<button type="button" id="bulkLine" title="Draw across pickup pins to select them">〰 Draw selection line</button>
 <button type="button" id="bulkCancel" hidden>Cancel drawing</button>
 <span class="bulk-count" id="bulkCount">0 selected</span>
 <button type="button" id="bulkDelete" class="bulk-danger" disabled>Delete selected</button>
@@ -242,6 +243,7 @@ function bulkDrawVisual(){
  if(!map)return;
  if(bulkGeometry)map.removeLayer(bulkGeometry);
  bulkGeometry=null;
+ if(bulkMode==='line'&&bulkVertices.length>=1){bulkGeometry=L.polyline(bulkVertices,{color:'#d81b60',weight:5,opacity:.85,interactive:false}).addTo(map)}
  if(bulkMode==='circle'&&bulkVertices.length>=1){if(bulkVertices.length===2){bulkGeometry=L.circle(bulkVertices[0],{radius:map.distance(bulkVertices[0],bulkVertices[1]),color:'#0d6cba',weight:3,fillColor:'#0d6cba',fillOpacity:.12}).addTo(map)}else{bulkGeometry=L.circleMarker(bulkVertices[0],{radius:6,color:'#0d6cba',fillColor:'#0d6cba'}).addTo(map)}}
  
  if(bulkHighlighter)map.removeLayer(bulkHighlighter);
@@ -249,15 +251,15 @@ function bulkDrawVisual(){
  const r=current();for(const idx of bulkSelected){const stop=r.stops[idx];if(!stop||!Number.isFinite(stop.lat)||!Number.isFinite(stop.lon))continue;
  L.circleMarker([stop.lat,stop.lon],{radius:15,color:'#dc2626',weight:3,fillColor:'#f97316',fillOpacity:.35,interactive:false,className:'bulk-highlight'}).addTo(bulkHighlighter)}
  $('bulkCount').textContent=bulkSelected.size.toLocaleString()+' selected';$('bulkDelete').disabled=!bulkSelected.size;$('bulkClear').disabled=!bulkSelected.size;
- for(const [name,mode] of [['bulkCircle','circle'],['bulkSingle','single']])$(''+name).classList.toggle('bulk-active',bulkMode===mode);
+ for(const [name,mode] of [['bulkCircle','circle'],['bulkSingle','single'],['bulkLine','line']])$(''+name).classList.toggle('bulk-active',bulkMode===mode);
  $('bulkCancel').hidden=!bulkMode;
- const help=bulkMode==='circle'?'Click and drag from the circle center out to its edge, then release to select pins.':
+ const help=bulkMode==='line'?'Hold and draw across customer pins, then release to select them.':bulkMode==='circle'?'Click and drag from the circle center out to its edge, then release to select pins.':
  bulkMode==='single'?'Click pins to select or deselect them; map clicks will not add pins.':'';
  $('bulkHelp').hidden=!help;$('bulkHelp').textContent=help;
- if(map)map.getContainer().style.cursor=bulkMode?'crosshair':'';
+ if(map){map.getContainer().style.cursor=bulkMode?'crosshair':'';map.getContainer().style.touchAction=bulkMode==='line'?'none':'';}
 }
 function bulkCancelDrawing(){bulkMode=null;bulkDrawing=false;bulkVertices=[];if(map?.dragging)map.dragging.enable();bulkDrawVisual()}
-function bulkSetMode(mode){if(missingAreaMode)missingAreaReset(true);bulkEnsureRoute();bulkMode=bulkMode===mode?null:mode;bulkVertices=[];bulkDrawing=false;if(map?.dragging){if(bulkMode==='circle')map.dragging.disable();else map.dragging.enable()}bulkDrawVisual();if(bulkMode){map?.closePopup();setStatus(bulkMode==='circle'?'Circle selection: click and drag on the map to draw around pins.': 'Selection mode: '+mode+'. Original GPX remains unchanged.')} }
+function bulkSetMode(mode){if(missingAreaMode)missingAreaReset(true);bulkEnsureRoute();bulkMode=bulkMode===mode?null:mode;bulkVertices=[];bulkDrawing=false;if(map?.dragging){if(bulkMode==='circle'||bulkMode==='line')map.dragging.disable();else map.dragging.enable()}bulkDrawVisual();if(bulkMode){map?.closePopup();setStatus(bulkMode==='circle'?'Circle selection: click and drag on the map to draw around pins.': 'Selection mode: '+mode+'. Original GPX remains unchanged.')} }
 function bulkSelectGeometry(shape){
  const r=bulkEnsureRoute();let chosen=0;
  for(let i=0;i<r.stops.length;i++){const stop=r.stops[i];if(!Number.isFinite(stop.lat)||!Number.isFinite(stop.lon))continue;if(shape(stop.lat,stop.lon)){bulkSelected.add(i);chosen++}}
@@ -266,7 +268,7 @@ function bulkSelectGeometry(shape){
 function bulkMapClick(latlng){
  if(!bulkMode)return false;
  if(bulkMode==='single')return true;
- if(bulkMode==='circle')return true;
+ if(bulkMode==='circle'||bulkMode==='line')return true;
  return false;
 }
 let bulkDrawing=false;
@@ -274,8 +276,25 @@ let bulkDrawing=false;
 function bulkStartCircle(e){if(bulkMode!=='circle'||!e.latlng)return;bulkDrawing=true;bulkVertices=[e.latlng];bulkDrawVisual();}
 function bulkMoveCircle(e){if(!bulkDrawing||bulkMode!=='circle'||!e.latlng)return;bulkVertices[1]=e.latlng;bulkDrawVisual();}
 function bulkEndCircle(e){if(!bulkDrawing||bulkMode!=='circle')return;bulkDrawing=false;if(e&&e.latlng)bulkVertices[1]=e.latlng;if(bulkVertices.length<2||map.distance(bulkVertices[0],bulkVertices[1])<8){bulkVertices=[];bulkDrawVisual();setStatus('Drag farther to draw a larger selection circle.');return}const center=bulkVertices[0],radius=map.distance(center,bulkVertices[1]);bulkSelectGeometry((lat,lon)=>map.distance(center,L.latLng(lat,lon))<=radius);}
+let linePointerId=null,lineIgnoreClickUntil=0;
+function lineInstall(){const el=map.getContainer();
+ el.addEventListener('pointerdown',e=>{if(bulkMode!=='line'||e.button!==0||e.target.closest('.leaflet-control,.bulk-tools'))return;
+ e.preventDefault();e.stopPropagation();linePointerId=e.pointerId;bulkDrawing=true;bulkVertices=[];const ll=map.mouseEventToLatLng(e);bulkVertices.push(ll);try{el.setPointerCapture(e.pointerId)}catch(_){}bulkDrawVisual();},true);
+ el.addEventListener('pointermove',e=>{if(bulkMode!=='line'||!bulkDrawing||e.pointerId!==linePointerId)return;
+ e.preventDefault();const ll=map.mouseEventToLatLng(e);const last=bulkVertices[bulkVertices.length-1];if(!last||map.latLngToContainerPoint(last).distanceTo(map.latLngToContainerPoint(ll))>3){if(bulkVertices.length<2500)bulkVertices.push(ll);if(bulkVertices.length%3===0)bulkDrawVisual();}},true);
+ const finish=e=>{if(bulkMode!=='line'||!bulkDrawing||e.pointerId!==linePointerId)return;
+ e.preventDefault();e.stopPropagation();bulkDrawing=false;linePointerId=null;lineIgnoreClickUntil=Date.now()+450;
+ try{el.releasePointerCapture(e.pointerId)}catch(_){}
+ const ll=map.mouseEventToLatLng(e);bulkVertices.push(ll);
+ if(bulkVertices.length<2){bulkVertices=[];bulkDrawVisual();setStatus('Drag across the pins to select them.');return}
+ const pts=bulkVertices.map(p=>map.latLngToContainerPoint(p));
+ const distanceToSegment=(p,a,b)=>{const vx=b.x-a.x,vy=b.y-a.y,den=vx*vx+vy*vy,t=den?Math.max(0,Math.min(1,((p.x-a.x)*vx+(p.y-a.y)*vy)/den)):0;return Math.hypot(p.x-a.x-t*vx,p.y-a.y-t*vy)};
+ bulkSelectGeometry((lat,lon)=>{const p=map.latLngToContainerPoint([lat,lon]);for(let i=1;i<pts.length;i++)if(distanceToSegment(p,pts[i-1],pts[i])<=18)return true;return false});};
+ el.addEventListener('pointerup',finish,true);el.addEventListener('pointercancel',e=>{if(bulkDrawing&&e.pointerId===linePointerId){bulkDrawing=false;linePointerId=null;bulkVertices=[];bulkDrawVisual()}},true);
+}
 function bulkTogglePin(index){if(bulkMode!=='single')return false;if(bulkSelected.has(index))bulkSelected.delete(index);else bulkSelected.add(index);bulkDrawVisual();return true}
 $('bulkCircle').onclick=()=>bulkSetMode('circle');$('bulkSingle').onclick=()=>bulkSetMode('single');
+$('bulkLine').onclick=()=>bulkSetMode('line');
 $('bulkCancel').onclick=bulkCancelDrawing;
 $('bulkClear').onclick=()=>{bulkSelected.clear();bulkMode=null;bulkVertices=[];bulkDrawVisual();setStatus('Selection cleared. No customer pins were deleted.')};
 $('bulkDelete').onclick=()=>{
@@ -287,7 +306,7 @@ $('bulkDelete').onclick=()=>{
 };
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(missingAreaMode)missingAreaReset();if(bulkMode)bulkCancelDrawing()}});
 
-function init(){if(typeof L==='undefined'){setStatus('Map library did not load. Connect to the internet and reopen this file in Edge.');return}map=L.map('map',{zoomControl:true}).setView([36.36,-94.31],13);missingAreaInstallFreehand();map.on('mousedown',bulkStartCircle);map.on('mousemove',bulkMoveCircle);map.on('mouseup',bulkEndCircle);map.on('mouseout',()=>{if(bulkDrawing)bulkEndCircle(null)});stopLayer=L.layerGroup().addTo(map);addressLayer=L.layerGroup().addTo(map);missingLayer=L.layerGroup().addTo(map);map.on('moveend zoomend',renderMissingPins);map.on('moveend zoomend',scheduleAddressLoad);map.on('zoomend',renderStopPins);map.on('moveend',renderStopPins);setBase();map.on('click',e=>{if(missingAreaMode||Date.now()<missingAreaIgnoreClickUntil)return;if(bulkMapClick(e.latlng))return;if(window.selectGPXStart){window.selectGPXStart(e.latlng);return}if(placingStop){rememberChange();placingStop.lat=e.latlng.lat;placingStop.lon=e.latlng.lng;placingStop.needsPin=false;placingStop=null;save();refresh();setStatus('Customer pin placed on the map.')}else addStop(e.latlng)});refresh();}
+function init(){if(typeof L==='undefined'){setStatus('Map library did not load. Connect to the internet and reopen this file in Edge.');return}map=L.map('map',{zoomControl:true}).setView([36.36,-94.31],13);missingAreaInstallFreehand();lineInstall();map.on('mousedown',bulkStartCircle);map.on('mousemove',bulkMoveCircle);map.on('mouseup',bulkEndCircle);map.on('mouseout',()=>{if(bulkDrawing&&bulkMode==='circle')bulkEndCircle(null)});stopLayer=L.layerGroup().addTo(map);addressLayer=L.layerGroup().addTo(map);missingLayer=L.layerGroup().addTo(map);map.on('moveend zoomend',renderMissingPins);map.on('moveend zoomend',scheduleAddressLoad);map.on('zoomend',renderStopPins);map.on('moveend',renderStopPins);setBase();map.on('click',e=>{if(missingAreaMode||Date.now()<missingAreaIgnoreClickUntil||Date.now()<lineIgnoreClickUntil)return;if(bulkMapClick(e.latlng))return;if(window.selectGPXStart){window.selectGPXStart(e.latlng);return}if(placingStop){rememberChange();placingStop.lat=e.latlng.lat;placingStop.lon=e.latlng.lng;placingStop.needsPin=false;placingStop=null;save();refresh();setStatus('Customer pin placed on the map.')}else addStop(e.latlng)});refresh();}
 const providers={sat:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',street:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',topo:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',osm:'https://tile.openstreetmap.org/{z}/{x}/{y}.png'};
 
 // Per-device display adjustments, applied to the aerial imagery layer only.
