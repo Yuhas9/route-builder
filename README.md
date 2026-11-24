@@ -11,3 +11,5 @@ V12: Driver map heading-up (GPX-based), north-up and free rotation; +/-45 degree
 V13: selecting a map pin or work order highlights and scrolls to that order without auto-panning or rotating. On narrow portrait screens, tapping a pin opens the order list. Resume center, advancing a turn or completing a stop resumes automatic navigation framing. Live GPS updates continue while inspecting a stop, but auto-follow is paused.
 
 V14: Disable Leaflet marker focus auto-pan; keep driver markers stable across selection; pause navigation camera on marker pointer-down and preserve list selection.
+
+V15: phone-only driver layout with slide-up searchable stop list, compact navigation banner, map and extra-action menus, large service buttons, and separate stop preview. Tablet/desktop retain the V14 layout. Previewing another stop pauses automatic camera following without changing the active work order; return to current or explicitly use the previewed stop. Layout checked at representative phone/tablet dimensions in Chromium; actual iPhone Safari and live map/auth testing still recommended.
