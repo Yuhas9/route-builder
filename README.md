@@ -9,3 +9,5 @@ V11: Manual turns are bounded to the selected work order along the saved GPX. Ch
 V12: Driver map heading-up (GPX-based), north-up and free rotation; +/-45 degree controls, Shift+wheel and two-finger rotation, center and zoom toggles. Rotation uses external Leaflet Rotate 0.2.8; if unavailable the map remains north-up. Browser/device testing required.
 
 V13: selecting a map pin or work order highlights and scrolls to that order without auto-panning or rotating. On narrow portrait screens, tapping a pin opens the order list. Resume center, advancing a turn or completing a stop resumes automatic navigation framing. Live GPS updates continue while inspecting a stop, but auto-follow is paused.
+
+V14: Disable Leaflet marker focus auto-pan; keep driver markers stable across selection; pause navigation camera on marker pointer-down and preserve list selection.
