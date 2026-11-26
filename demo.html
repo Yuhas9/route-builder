@@ -1799,7 +1799,7 @@ const setup=$('rb16New').closest('.row'),build=$('rb16Original').closest('.row')
 function card(id,title,group){const p=document.createElement('div');p.className='panel';p.id=id;p.dataset.rb20Group=group;const b=document.createElement('b');b.textContent=title;p.append(b);return p;}
 const routeCard=card('rb20RoutePanel','Create & manage routes','routes');routeCard.append(setup,versions);panel.before(routeCard);
 const reviewCard=card('rb20ReviewPanel','Compare & export paths','review');reviewCard.append(review);panel.after(reviewCard);
-const title=panel.querySelector(':scope > b');if(title)title.textContent='Build customer sequence · V26';build.id='rb20BuildActions';$('rb16Original').textContent='1 · Re-sequence stops from recorded GPX (offline)';$('rb18Named').textContent='2 · Recalculate using named streets (online)';$('rb16Optimize').textContent='3 · Optimize on recorded roads';$('rb16Generate').textContent='Generate GPX from current stop order';build.append($('rb18Named'),$('rb16Optimize'),$('rb16Generate'));
+const title=panel.querySelector(':scope > b');if(title)title.textContent='Build customer sequence · V27';build.id='rb20BuildActions';$('rb16Original').textContent='1 · Re-sequence stops from recorded GPX (offline)';$('rb18Named').textContent='2 · Recalculate using named streets (online)';$('rb16Optimize').textContent='3 · Optimize on recorded roads';$('rb16Generate').textContent='Generate GPX from current stop order';build.append($('rb18Named'),$('rb16Optimize'),$('rb16Generate'));
 const guide=document.createElement('p');guide.className='small';guide.textContent='Sequence pins first. Yellow review pins are provisional, including estimated turnaround placements. Optimize only after reviewing the service passes. No new road connections are invented.';build.before(guide);const result=document.createElement('div');result.id='rb24Result';result.setAttribute('role','status');result.setAttribute('aria-live','polite');result.style.cssText='padding:10px;border:1px solid var(--rb21-border);border-radius:6px;overflow-wrap:anywhere;line-height:1.45';result.textContent='Ready. Choose a sequencing tool. Results will appear here.';const activeInfo=document.createElement('div');activeInfo.id='rb24Active';activeInfo.className='small';const cancel=document.createElement('button');cancel.id='rb24Cancel';cancel.type='button';cancel.textContent='Cancel online street check';cancel.hidden=true;cancel.onclick=()=>window.rb24CancelOnline();guide.after(activeInfo,result,cancel);
 const findings=document.createElement('div');findings.id='rb20ReviewList';panel.append(findings);
 // V23: inspect the saved/imported order without changing the route, then let the user choose a new recorded version.
@@ -1823,11 +1823,90 @@ for(const [k,label] of [['map','Map'],['routes','Routes'],['stops','Stops'],['bu
 const name=document.createElement('span');name.id='rb20RouteName';tabs.append(name);const run=document.createElement('button');run.type='button';run.className='rb20Run';run.textContent='▶ Run';run.onclick=()=>$('rbRunOpen')?.click();tabs.append(run);
 const status=document.createElement('div');status.className='small';status.id='rb20Status';reviewCard.append(status);
 let reviewLayer=null;
-function reviewPass(r,stop){const pts=r.rbRecordedPoints||r.points;if(!Number.isFinite(stop.lat)||!Number.isFinite(stop.lon)){show('stops');return alert('Place this customer pin first.');}const p=[stop.lat,stop.lon],side=r.mode==='commercial'||stop.bothSidesSinglePass||stop.pickupMode==='either'?0:stop.pickupMode==='opposite'?1:-1,candidates=[];
-for(let j=Math.max(0,r.firstPickupIndex||0);j<pts.length-1;j++){const a=pts[j],b=pts[j+1],d=RB16Engine.dist(a,b);if(d<.2||d>250)continue;const q=optProjection(p,a,b);if(q.d>75||side&&q.cross*side<0)continue;const head=(Math.atan2((b[1]-a[1])*Math.cos(a[0]*Math.PI/180),b[0]-a[0])*180/Math.PI+360)%360;candidates.push({j,q,head});}candidates.sort((a,b)=>a.q.d-b.q.d);const best=[];for(const c of candidates){if(best.some(x=>Math.abs(x.j-c.j)<=5&&Math.abs(((x.head-c.head+540)%360)-180)<40))continue;best.push(c);if(best.length===8)break;}
-const d=document.createElement('dialog');d.style.cssText='width:min(92vw,410px);max-height:85vh;overflow:auto';const heading=document.createElement('h3');heading.textContent='Review '+(stop.address||'customer');d.append(heading);const info=document.createElement('p');info.textContent='Select a recorded pass only after checking the street and direction. Right-side service is required unless this stop is explicitly configured otherwise.';d.append(info);const list=document.createElement('div');d.append(list);let selected=null;const compass=['N','NE','E','SE','S','SW','W','NW'];const note=document.createElement('p');note.className='small';note.textContent=best.length?'Select a pass to highlight it on the map. Close the window temporarily using Preview on map, then confirm from the map popup.':'No nearby pass on the configured collection side. Check address, pin position or pickup-side setting.';
-d.append(note);const close=document.createElement('button');close.textContent='Cancel';close.onclick=()=>d.close();d.append(close);document.body.append(d);d.addEventListener('close',()=>d.remove());for(const c of best){const button=document.createElement('button');button.type='button';button.style.cssText='width:100%;margin:4px 0;text-align:left';button.textContent=`Pass at GPX point ${c.j+1} · ${compass[Math.round(c.head/45)%8]} · ${Math.round(c.q.d)} m from pin`;button.onclick=()=>{if(current()!==r)return d.close();if(!map||typeof L==='undefined')return alert('Load the map to verify this pass.');if(reviewLayer)reviewLayer.remove();const a=pts[c.j],b=pts[c.j+1];reviewLayer=L.layerGroup().addTo(map);L.polyline(pts.slice(Math.max(0,c.j-2),c.j+4),{color:'#ffbf00',weight:8,smoothFactor:0}).addTo(reviewLayer);L.circleMarker(a,{radius:6,color:'#0b7950',fillOpacity:1}).addTo(reviewLayer);L.circleMarker(b,{radius:6,color:'#bd293a',fillOpacity:1}).addTo(reviewLayer);const wrap=document.createElement('div');const label=document.createElement('b');label.textContent=(stop.address||'Customer')+' — '+compass[Math.round(c.head/45)%8];wrap.append(label,document.createElement('br'),document.createTextNode('Green dot → red dot is travel direction. Confirm only if this is the correct address street and service pass.'),document.createElement('br'));const confirm=document.createElement('button');confirm.textContent='Confirm this pass';confirm.onclick=()=>{if(current()!==r||!r.stops.includes(stop))return;rememberChange();stop.rb20Pass={j:c.j,segment:JSON.stringify([a,b]),lat:stop.lat,lon:stop.lon,address:stop.address,pickupMode:stop.pickupMode,both:!!stop.bothSidesSinglePass};stop.streetOrderReview=false;stop.rbMatchReason='Driver-confirmed pass';r.rbPathStale=true;save();map.closePopup();if(reviewLayer)reviewLayer.remove();reviewLayer=null;refresh();setStatus('Pass confirmed. Run Follow recorded GPX again to apply the corrected sequence.');};wrap.append(confirm);d.close();map.setView(p,19);L.popup().setLatLng(b).setContent(wrap).openOn(map);map.once('popupclose',()=>{if(reviewLayer)reviewLayer.remove();reviewLayer=null;});};list.append(button);}d.showModal();}
-function sync(){const r=current();if(!r)return;name.textContent=r.name||'No route';activeInfo.textContent='Active: '+(r.name||'Unnamed')+' · '+r.stops.length+' pins';if(auditedRoute!==r.id){auditStatus.textContent='Imported stop numbers may not follow the recorded path. Check order or re-sequence to create a separate version.';auditedRoute=r.id;}status.textContent=$('rb16Status').textContent;const items=r.stops.map((s,i)=>({s,i})).filter(x=>x.s.streetOrderReview);findings.replaceChildren();if(items.length){const h=document.createElement('b');h.textContent=items.length+' stops flagged for review';findings.append(h);for(const {s,i} of items.slice(0,100)){const b=document.createElement('button');b.type='button';b.textContent='#'+(i+1)+' '+(s.address||'Unnamed pin')+' — '+(s.rbMatchReason||'Check address and road');b.onclick=()=>reviewPass(r,s);findings.append(b);}if(items.length>100){const p=document.createElement('small');p.textContent='First 100 shown; all customer pins are retained.';findings.append(p);}}}
+
+let reviewState=null,reviewSkipped=new Set(),reviewRouteId=null;
+const quickReview=document.createElement('div');quickReview.id='rb27Review';quickReview.style.cssText='display:grid;gap:7px;margin:10px 0;padding:9px;border:1px solid var(--rb21-border);border-radius:8px';
+findings.before(quickReview);
+const queueButton=document.createElement('button');queueButton.type='button';queueButton.textContent='Review next yellow stop';queueButton.onclick=()=>nextReview(current());quickReview.append(queueButton);
+const reviewDetails=document.createElement('div');reviewDetails.style.cssText='display:grid;gap:6px';quickReview.append(reviewDetails);
+const reviewCount=document.createElement('small');quickReview.prepend(reviewCount);
+const includedFlag=s=>s.streetOrderReview&&s.serviceState!=='excluded';
+function clearReview(){reviewState=null;if(reviewLayer){reviewLayer.remove();reviewLayer=null;}reviewDetails.replaceChildren();}
+function nextReview(r,after=null){
+ if(!r||current()!==r)return;
+ if(reviewRouteId!==r.id){reviewSkipped.clear();reviewRouteId=r.id;}
+ const flagged=r.stops.filter(includedFlag);
+ if(!flagged.length){clearReview();setStatus('All included sequence warnings reviewed. Re-sequence from recorded GPX to apply saved pass confirmations.');return;}
+ const idx=after?r.stops.indexOf(after):-1;
+ const order=[...r.stops.slice(idx+1),...r.stops.slice(0,idx+1)];
+ const next=order.find(s=>includedFlag(s)&&!reviewSkipped.has(s));
+ if(!next){clearReview();setStatus(flagged.length+' skipped stops still need review. Click Review next yellow stop to revisit them.');reviewSkipped.clear();return;}
+ reviewPass(r,next);
+}
+function reviewCandidates(pts,stop,mode,first){
+ const p=[stop.lat,stop.lon],side=mode==='commercial'||stop.bothSidesSinglePass||stop.pickupMode==='either'?0:stop.pickupMode==='opposite'?1:-1,all=[];
+ for(let j=Math.max(0,first||0);j<pts.length-1;j++){
+  const a=pts[j],b=pts[j+1],d=RB16Engine.dist(a,b);if(!Number.isFinite(d)||d<.2||d>250)continue;
+  const q=optProjection(p,a,b),cross=q.cross*111195*111195/d;
+  if(q.d>75||(side&&cross*side<-.5))continue;
+  const head=(Math.atan2((b[1]-a[1])*Math.cos(a[0]*Math.PI/180),b[0]-a[0])*180/Math.PI+360)%360;
+  all.push({j,q,head});
+ }
+ const suggested=Number.isFinite(stop.gpxSequence)?Math.floor(stop.gpxSequence):null;
+ const near=all.filter(c=>suggested!==null&&Math.abs(c.j-suggested)<=2).sort((a,b)=>Math.abs(a.j+a.q.t-stop.gpxSequence)-Math.abs(b.j+b.q.t-stop.gpxSequence)||a.q.d-b.q.d)[0];
+ all.sort((a,b)=>a.q.d-b.q.d);const result=near?[near]:[];
+ for(const c of all){if(result.some(x=>Math.abs(x.j-c.j)<=5&&Math.abs(((x.head-c.head+540)%360)-180)<40))continue;result.push(c);if(result.length>=8)break;}
+ return result.map((c,i)=>({...c,suggested:i===0&&c===near}));
+}
+function reviewPass(r,stop){
+ if(!r||current()!==r||!r.stops.includes(stop)||!includedFlag(stop))return;
+ if(reviewRouteId!==r.id){reviewSkipped.clear();reviewRouteId=r.id;}
+ clearReview();show('build');map?.closePopup();
+ const pts=r.rbRecordedPoints||r.points||[],p=[stop.lat,stop.lon],compass=['N','NE','E','SE','S','SW','W','NW'];
+ const signature=()=>JSON.stringify([stop.lat,stop.lon,stop.address,stop.pickupMode,!!stop.bothSidesSinglePass,stop.serviceState,r.mode,r.firstPickupIndex]);
+ const originalSignature=signature(),state={r,stop,pts,chosen:null};reviewState=state;
+ const heading=document.createElement('b');heading.textContent='Review #'+(r.stops.indexOf(stop)+1)+' · '+(stop.address||'Customer');reviewDetails.append(heading);
+ const reason=document.createElement('small');reason.textContent=stop.rbMatchReason||'Check the street and collection side.';reviewDetails.append(reason);
+ function btn(label,fn){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;return b;}
+ const valid=Number.isFinite(p[0])&&Number.isFinite(p[1]);
+ const list=valid?reviewCandidates(pts,stop,r.mode,r.firstPickupIndex):[];
+ const picker=document.createElement('select');picker.setAttribute('aria-label','Choose recorded driving pass');picker.style.maxWidth='100%';
+ for(let i=0;i<list.length;i++){const c=list[i],o=document.createElement('option');o.value=i;o.textContent=(c.suggested?'Suggested · ':i===0?'Nearest · ':'')+compass[Math.round(c.head/45)%8]+' · '+Math.round(c.q.d)+' m · GPX '+(c.j+1);picker.append(o);}
+ const detail=document.createElement('small');detail.textContent='Green → red is travel direction. Cyan ring is customer. Verify the highlighted street and side before confirming.';reviewDetails.append(detail);
+ const confirmButton=btn('Confirm & next',()=>approve(true)),confirmStay=btn('Confirm only',()=>approve(false));
+ function preview(i){if(reviewState!==state||current()!==r||!list[i]||!map)return;const c=list[i];state.chosen=c;
+  if(reviewLayer)reviewLayer.remove();const a=pts[c.j],b=pts[c.j+1];reviewLayer=L.layerGroup().addTo(map);
+  L.polyline([a,b],{color:'#ffbf00',weight:8,smoothFactor:0,interactive:false}).addTo(reviewLayer);
+  L.circleMarker(a,{radius:6,color:'#0b7950',fillColor:'#0b7950',fillOpacity:1,interactive:false}).addTo(reviewLayer);
+  L.circleMarker(b,{radius:6,color:'#bd293a',fillColor:'#bd293a',fillOpacity:1,interactive:false}).addTo(reviewLayer);
+  L.circleMarker(p,{radius:16,color:'#22d3ee',weight:3,fillOpacity:0,interactive:false}).addTo(reviewLayer);
+  map.setView(p,19);confirmButton.disabled=false;confirmStay.disabled=false;
+ }
+ function approve(advance){
+  const c=state.chosen;
+  if(reviewState!==state||current()!==r||!r.stops.includes(stop)||!c||!pts[c.j]||!pts[c.j+1])return;
+  if(signature()!==originalSignature||(r.rbRecordedPoints||r.points)!==pts){clearReview();setStatus('Route or pin changed. Open review again.');return;}
+  const pass={j:c.j,segment:JSON.stringify([pts[c.j],pts[c.j+1]]),lat:stop.lat,lon:stop.lon,address:stop.address,pickupMode:stop.pickupMode,both:!!stop.bothSidesSinglePass};
+  const checked=RB16Engine.match(pts,[{...stop,rb20Pass:pass}],r.mode,r.firstPickupIndex||0)[0];
+  if(!checked||checked.review||checked.reason!=='Driver-confirmed recorded pass'){detail.textContent='This pass is not eligible for the configured pickup side. Select another pass or skip.';return;}
+  const prior={rb20Pass:stop.rb20Pass,streetOrderReview:stop.streetOrderReview,rbMatchReason:stop.rbMatchReason},stale=r.rbPathStale;
+  rememberChange();stop.rb20Pass=pass;stop.streetOrderReview=false;stop.rbMatchReason='Driver-confirmed pass';r.rbPathStale=true;
+  save();
+  let stored=false;try{const snapshot=JSON.parse(sessionStorage.getItem(KEY)||'[]');const persisted=snapshot.find(x=>x.id===r.id);const i=r.stops.indexOf(stop),item=stop.id?persisted?.stops.find(s=>s.id===stop.id):persisted?.stops[i];stored=!!item&&item.streetOrderReview===false&&item.rb20Pass?.segment===pass.segment&&item.rb20Pass?.j===pass.j;}catch(e){}
+  if(!stored){Object.assign(stop,prior);r.rbPathStale=stale;detail.textContent='Approval was not saved. Export a library backup and free storage before continuing.';return;}
+  reviewSkipped.delete(stop);clearReview();refresh();
+  setStatus('Pass confirmed locally. '+r.stops.filter(includedFlag).length+' warnings remain. Re-sequence after review.');
+  if(advance)nextReview(r,stop);
+ }
+ confirmButton.disabled=true;confirmStay.disabled=true;
+ if(list.length){reviewDetails.append(picker);picker.onchange=()=>preview(Number(picker.value));reviewDetails.append(confirmButton,confirmStay);confirmButton.className='primary';preview(0);}
+ else{detail.textContent=valid?'No eligible recorded pass nearby. Edit the pin or leave it flagged; approval is not available.':'Pin has no coordinates. Place it before review.';if(valid&&map)map.setView(p,19);}
+ reviewDetails.append(btn('Skip — review later',()=>{reviewSkipped.add(stop);nextReview(r,stop);}),btn('Close review',clearReview));
+ quickReview.scrollIntoView({block:'nearest'});
+}
+const oldReviewPopup=popupForStop;popupForStop=function(s,i){return oldReviewPopup(s,i)+(includedFlag(s)?'<div style="margin-top:8px"><button type="button" class="primary" data-rb27-review="'+i+'">Review sequence</button></div>':'');};
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-rb27-review]');if(!b)return;ev.preventDefault();const r=current(),s=r?.stops[Number(b.dataset.rb27Review)];if(s&&includedFlag(s))reviewPass(r,s);});
+function sync(){const r=current();if(!r)return;if(reviewRouteId!==r.id){clearReview();reviewSkipped.clear();reviewRouteId=r.id;}else if(reviewState&&(!r.stops.includes(reviewState.stop)||!includedFlag(reviewState.stop)))clearReview();const remaining=r.stops.filter(includedFlag).length;reviewCount.textContent=remaining+' stops left to review';queueButton.disabled=remaining===0;quickReview.hidden=remaining===0;quickReview.style.display=remaining?'grid':'none';name.textContent=r.name||'No route';activeInfo.textContent='Active: '+(r.name||'Unnamed')+' · '+r.stops.length+' pins';if(auditedRoute!==r.id){auditStatus.textContent='Imported stop numbers may not follow the recorded path. Check order or re-sequence to create a separate version.';auditedRoute=r.id;}status.textContent=$('rb16Status').textContent;const items=r.stops.map((s,i)=>({s,i})).filter(x=>includedFlag(x.s));findings.replaceChildren();if(items.length){const h=document.createElement('b');h.textContent=items.length+' stops flagged for review';findings.append(h);for(const {s,i} of items.slice(0,100)){const b=document.createElement('button');b.type='button';b.textContent='#'+(i+1)+' '+(s.address||'Unnamed pin')+' — '+(s.rbMatchReason||'Check address and road');b.onclick=()=>reviewPass(r,s);findings.append(b);}if(items.length>100){const p=document.createElement('small');p.textContent='First 100 shown; all customer pins are retained.';findings.append(p);}}}
 const previous=refresh;refresh=function(){previous();sync()};new MutationObserver(()=>status.textContent=$('rb16Status').textContent).observe($('rb16Status'),{childList:true,characterData:true,subtree:true});
 document.addEventListener('click',ev=>{if(ev.target.closest('[data-popup="edit"]'))show('stops');if(ev.target.closest('#rbRunOpen')){const r=current();if((r.rbPathStale||r.stops.some(x=>x.streetOrderReview))&&!confirm('This route has flagged stops or an out-of-date driving path. Review the route before use. Continue to Driver Mode anyway?')){ev.preventDefault();ev.stopImmediatePropagation();}}},true);
 $('rb18ReplayCurrent').addEventListener('click',()=>show('review'),true);
