@@ -1705,7 +1705,7 @@ e('importBtn').textContent='Import GPX as new route';sync();
 #rbDriver #rdNavPanel[data-size=minimized] #rdNavMain{font-size:12px}
 #rbDriver #rdNavPanel.rd-nav-warning #rdNavSub{display:block;font-size:11px}
 </style><script id="rb18-navigation-sizing">
-(()=>{const panel=document.getElementById('rdNavPanel'),size=document.getElementById('rdNavSize'),root=document.getElementById('rbDriver'),arrow=document.getElementById('rdNavArrow'),main=document.getElementById('rdNavMain');const modes=['full','compact','minimized'];let chosen=null;const phone=matchMedia('(max-width:700px), (max-width:1000px) and (max-height:500px) and (pointer:coarse)');function apply(){const m=chosen||(phone.matches?'compact':'full');panel.dataset.size=m;size.textContent=m==='full'?'Full':m==='compact'?'Compact':'Mini';size.setAttribute('aria-label',`Navigation size ${m}; tap to change`);size.title='Tap to change navigation size';}size.addEventListener('click',()=>{chosen=modes[(modes.indexOf(panel.dataset.size)+1)%modes.length];apply()});phone.addEventListener('change',apply);function warning(){panel.classList.toggle('rd-nav-warning',arrow.textContent==='!'||arrow.textContent==='—'||/Waiting|uncertain|off saved route|no gpx/i.test(main.textContent));}const obs=new MutationObserver(warning);obs.observe(arrow,{childList:true,characterData:true,subtree:true});obs.observe(main,{childList:true,characterData:true,subtree:true});apply();warning();})();
+(()=>{const panel=document.getElementById('rdNavPanel'),size=document.getElementById('rdNavSize'),root=document.getElementById('rbDriver'),arrow=document.getElementById('rdNavArrow'),main=document.getElementById('rdNavMain');const modes=['full','compact','minimized'];let chosen=null;try{const saved=localStorage.getItem('rb21NavSize');if(modes.includes(saved))chosen=saved}catch(e){}const phone=matchMedia('(max-width:700px), (max-width:1000px) and (max-height:500px) and (pointer:coarse)');function apply(){const m=chosen||'compact';panel.dataset.size=m;size.textContent=m==='full'?'Full':m==='compact'?'Compact':'Mini';size.setAttribute('aria-label',`Navigation size ${m}; tap to change`);size.title='Tap to change navigation size';}size.addEventListener('click',()=>{chosen=modes[(modes.indexOf(panel.dataset.size)+1)%modes.length];try{localStorage.setItem('rb21NavSize',chosen)}catch(e){}apply()});phone.addEventListener('change',apply);function warning(){panel.classList.toggle('rd-nav-warning',arrow.textContent==='!'||arrow.textContent==='—'||/Waiting|uncertain|off saved route|no gpx/i.test(main.textContent));}const obs=new MutationObserver(warning);obs.observe(arrow,{childList:true,characterData:true,subtree:true});obs.observe(main,{childList:true,characterData:true,subtree:true});apply();warning();})();
 </script><style id="rb20-workspace-style">
 :root{--rb20-ink:#143c50;--rb20-teal:#12667a;--rb20-paper:#f0f5f7}
 #rb20Tabs{display:flex;align-items:center;gap:6px;padding:7px 12px;background:#e4edf1;border-bottom:1px solid #c6d5dc;flex:none;z-index:901;overflow-x:auto;white-space:nowrap}
@@ -1765,4 +1765,96 @@ const nav=$('rdNavPanel');if(nav&&!nav.dataset.size)nav.dataset.size='compact';
 }if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init()})();
 </script>
 
+<style id="rb21-appearance-style">
+/* V21: shared appearance tokens; routing and storage are unchanged. */
+:root{--rb21-bg:#eaf0f4;--rb21-panel:#fff;--rb21-alt:#f0f5f8;--rb21-input:#fff;--rb21-text:#173645;--rb21-muted:#526877;--rb21-border:#c6d5de;--rb21-teal:#12667a;--rb21-active:#fff0bd;--rb21-preview:#d8f1ff;--rb21-green:#087954;--rb21-red:#b82d3b;--rb21-mapfilter:none}
+:root[data-rb21-theme=dark]{color-scheme:dark;--rb21-bg:#111820;--rb21-panel:#1b252e;--rb21-alt:#263540;--rb21-input:#151f28;--rb21-text:#e5edf3;--rb21-muted:#acbeca;--rb21-border:#3a4b59;--rb21-teal:#12667a;--rb21-active:#554623;--rb21-preview:#15465c;--rb21-green:#087954;--rb21-red:#b82d3b;--rb20-ink:#dfeaf1;--rb20-paper:#111820}
+body{background:var(--rb21-bg);color:var(--rb21-text)}body>header{background:#103e50;color:#fff;border-color:var(--rb21-border)}body>header h1{letter-spacing:.1px}body>header .small{color:#c4dde7}
+#rb21AppearanceQuick,#rbDriver #rdAppearance{min-height:44px;min-width:44px;background:#124b60;color:white;border:1px solid #638694;white-space:nowrap;font-weight:700}
+#rb21AppearancePanel label{display:grid;gap:6px;margin:12px 0;font-weight:650}#rb21AppearancePanel select{width:100%}#rb21AppearancePanel p{line-height:1.4}
+:root[data-rb21-theme=dark] :is(.panel,.customer-editor,.notice,.missing-status,.rb-gl-dialog,.rb-gl-head,.settingsCard,.loginCard,dialog,.rb-settings-dialog,.rb-estimate-page,.rb-estimate-inner>.panel,.map-tool-actions,.rb-mobile-grip,header>.row,.leaflet-popup-content-wrapper,.leaflet-popup-tip,.bulk-count,.bulk-help,.hint){background:var(--rb21-panel)!important;color:var(--rb21-text)!important;border-color:var(--rb21-border)!important}
+:root[data-rb21-theme=dark] :is(#secureGate,#optionsSidebar,.side,#rb20Tabs){background:var(--rb21-bg)!important;color:var(--rb21-text);border-color:var(--rb21-border)}
+:root[data-rb21-theme=dark] :is(button,select,input:not([type=color]),textarea){background-color:var(--rb21-input);color:var(--rb21-text);border-color:var(--rb21-border)}
+:root[data-rb21-theme=dark] :is(button.primary,button.active,button[aria-pressed=true],#rb20BuildActions button:first-child){background:#12667a!important;color:#fff!important;border-color:#12667a!important}
+:root[data-rb21-theme=dark] :is(.small,small,.addr-help,.route-metrics,.missing-source,.missing-totals,.missing-pagination span,.customer-editor label,.rb-fold-count,#rb20Status,#rb20RouteName){color:var(--rb21-muted)!important}
+:root[data-rb21-theme=dark] :is(.stop,.missing-result,hr,td,th){border-color:var(--rb21-border)}
+:root[data-rb21-theme=dark] :is(.stop.selected-stop,.stop.drop-target){background:var(--rb21-preview);color:var(--rb21-text)}
+:root[data-rb21-theme=dark] :is(.route-warning){background:#46381e;color:#ffdc98;border-color:#887044}
+:root[data-rb21-theme=dark] #rb20Tabs button{color:var(--rb21-text)}:root[data-rb21-theme=dark] #rb20Tabs .rb20Run,:root[data-rb21-theme=dark] #rbRunOpen{background:#087954!important;color:white!important}
+:root[data-rb21-theme=dark] a{color:#8ad3fa}:root[data-rb21-theme=dark] .leaflet-control-attribution{background:#182630d9;color:#d7e4ec}
+:root[data-rb21-theme=dark] .leaflet-bar a{background:#1b252e;color:#e5edf3;border-color:#3a4b59}
+:root[data-rb21-map=night] :is(#map,#rdMap,#gpxWorkspaceMap) .leaflet-tile-pane{filter:brightness(.60) saturate(.82)}
+/* Dark map only dims imagery, not pins, road lines or UI. */
+#rbDriver,#rbDriver:not(.rd-phone){background:var(--rb21-bg);color:var(--rb21-text)}
+#rbDriver .rdHead,#rbDriver:not(.rd-phone) .rdHead{background:#103e50;box-shadow:none}
+#rbDriver .rdListPane,#rbDriver:not(.rd-phone) .rdListPane,#rbDriver .rdFoot,#rbDriver:not(.rd-phone) .rdFoot{background:var(--rb21-panel);border-color:var(--rb21-border);color:var(--rb21-text)}
+#rbDriver button{background:var(--rb21-input);color:var(--rb21-text);border-color:var(--rb21-border)}
+#rbDriver .rdHead button{background:#124b60;color:white;border-color:#638694}
+#rbDriver #rdSearch,#rbDriver:not(.rd-phone) #rdSearch{background:var(--rb21-input);color:var(--rb21-text);border-color:var(--rb21-border)}
+#rbDriver .rdTableHead,#rbDriver:not(.rd-phone) .rdTableHead{background:var(--rb21-alt);border-color:var(--rb21-border);color:var(--rb21-text)}
+#rbDriver #rdList button,#rbDriver:not(.rd-phone) #rdList button{background:var(--rb21-panel);color:var(--rb21-text);border-color:var(--rb21-border);min-height:44px}
+#rbDriver #rdList button:nth-child(even){background:var(--rb21-alt)}
+#rbDriver #rdList button[aria-current=true],#rbDriver:not(.rd-phone) #rdList button[aria-current=true]{background:var(--rb21-active)!important;border-left:4px solid #d39b20;color:var(--rb21-text)}
+#rbDriver.rd-phone #rdList button[data-preview=true]{background:var(--rb21-preview)!important}
+#rbDriver #rdFilters button,#rbDriver:not(.rd-phone) #rdFilters button{background:var(--rb21-alt);color:var(--rb21-text);border-color:var(--rb21-border)}
+#rbDriver #rdFilters button[aria-pressed=true],#rbDriver:not(.rd-phone) #rdFilters button[aria-pressed=true]{background:#12667a!important;color:white!important}
+#rbDriver #rdCounts,#rbDriver #rdGpsStatus,#rbDriver:not(.rd-phone) #rdGpsStatus,#rbDriver #rdOrderInfo{color:var(--rb21-muted)}
+#rbDriver #rdCounts span,#rbDriver:not(.rd-phone) #rdCounts span{background:var(--rb21-alt);border-color:var(--rb21-border);border-left-color:var(--stat);color:var(--rb21-text)}
+#rbDriver #rdComplete,#rbDriver #rdNotOut{color:white!important;border:0;font-weight:800;min-height:50px}
+#rbDriver #rdComplete{background:var(--rb21-green)!important}#rbDriver #rdNotOut{background:var(--rb21-red)!important}
+#rbDriver button:disabled{opacity:.48;cursor:default}#rbDriver #rdNavPanel,#rbDriver #rdMapCurrent,#rbDriver #rdLegend{background:#102633ed;color:#fff}
+#rbDriver #rdMapMenu,#rbDriver #rdNavSize,#rbDriver #rdMapTools button,#rbDriver #rdManualControls button{background:#124b60;color:#fff;border-color:#638694}
+#rbDriver.rd-phone :is(.rdSheetBar,#rdExtraActions,#rdPreview){background:var(--rb21-panel);color:var(--rb21-text);border-color:var(--rb21-border)}
+:root[data-rb21-theme=dark] #rbDriver #rdList button span[data-rd-symbol]{color:#b4c6d4!important;--rd-status:#b4c6d4!important}
+:root[data-rb21-theme=dark] #rbDriver #rdList button span[data-rd-symbol="✓"]{color:#70dfa3!important;--rd-status:#70dfa3!important}
+:root[data-rb21-theme=dark] #rbDriver #rdList button span[data-rd-symbol="×"]{color:#ff939a!important;--rd-status:#ff939a!important}
+:root[data-rb21-theme=dark] #rbDriver #rdList button span[data-rd-symbol="!"]{color:#ffcd7a!important;--rd-status:#ffcd7a!important}
+:root[data-rb21-theme=dark] #rbDriver #rdList button span[data-rd-symbol="–"]{color:#c8afff!important;--rd-status:#c8afff!important}
+/* Tablet: dedicated full-width collection bar, compact map instructions. */
+#rbDriver:not(.rd-phone) .rdBody{grid-template-columns:minmax(0,42fr) minmax(0,58fr);padding-top:4px}
+#rbDriver:not(.rd-phone) .rdFoot{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:8px 10px}
+#rbDriver:not(.rd-phone) #rdCurrent{grid-row:2;grid-column:1/-1;font-size:15px}
+#rbDriver:not(.rd-phone) #rdMainActions{grid-row:3;grid-column:1/-1;grid-template-columns:minmax(64px,.8fr) minmax(0,2fr) minmax(0,2fr) minmax(64px,.8fr)}
+#rbDriver:not(.rd-phone) #rdGpsStatus{grid-row:4;grid-column:1}#rbDriver:not(.rd-phone) #rdExtraActions{grid-row:4;grid-column:2}
+#rbDriver:not(.rd-phone) #rdMapCurrent{left:8px;right:76px;top:8px;padding:6px 8px;font-size:12px;width:max-content;max-width:calc(100% - 84px)}
+#rbDriver:not(.rd-phone) #rdNavPanel{top:43px;left:8px;right:75px;width:max-content;max-width:calc(100% - 85px)}
+#rbDriver:not(.rd-phone) #rdMapMenu{top:8px}#rbDriver:not(.rd-phone) #rdMapTools{top:58px;max-height:calc(100% - 66px)}
+#rbDriver #rdNavPanel[data-size=full]{width:auto}#rbDriver #rdNavPanel[data-size=compact]{width:max-content;right:auto;max-width:calc(100% - 76px)}
+#rbDriver #rdNavPanel[data-size=minimized]{width:max-content;right:auto;max-width:calc(100% - 60px)}
+#rbDriver #rdNavSize{min-height:44px;min-width:44px}
+/* Phone: equal service buttons, compact bottom bar, expandable existing sheet. */
+#rbDriver #rdBottomStops{display:none}
+#rbDriver.rd-phone #rdToggle{display:none}#rbDriver.rd-phone #rdBottomStops{display:block;grid-row:2;grid-column:2}
+#rbDriver.rd-phone #rdMainActions{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+#rbDriver.rd-phone #rdComplete{grid-column:1/3;grid-row:1}#rbDriver.rd-phone #rdNotOut{grid-column:3/5;grid-row:1}
+#rbDriver.rd-phone #rdPrev{grid-column:1;grid-row:2}#rbDriver.rd-phone #rdNext{grid-column:3;grid-row:2}#rbDriver.rd-phone #rdMore{grid-column:4;grid-row:2}
+#rbDriver.rd-phone #rdMainActions button{min-width:0;padding:5px 2px}#rbDriver.rd-phone #rdComplete,#rbDriver.rd-phone #rdNotOut{font-size:16px;min-height:50px}
+#rbDriver.rd-phone #rdNavPanel{left:7px;top:7px}#rbDriver.rd-phone #rdNavPanel[data-size=compact]{max-width:calc(100% - 14px)}
+#rbDriver.rd-phone #rdCurrent{font-size:16px}#rbDriver.rd-phone .rdHead{gap:4px}#rbDriver.rd-phone #rdAppearance{min-width:44px;padding:4px;font-size:16px}
+#rbDriver.rd-phone #rdMainActions #rdUndoQuick{display:none}
+@media(max-width:750px){body>header.rb-menu-open>.row{background:var(--rb21-panel)}#rb21AppearanceQuick{font-size:16px;padding:5px}#rb20Tabs button{min-height:44px}}
+@media(max-width:1000px) and (max-height:500px) and (pointer:coarse){#rbDriver.rd-phone #rdMainActions{grid-template-columns:repeat(2,minmax(0,1fr))}#rbDriver.rd-phone #rdComplete{grid-column:1;grid-row:1}#rbDriver.rd-phone #rdNotOut{grid-column:2;grid-row:1}#rbDriver.rd-phone #rdPrev{grid-column:1;grid-row:2}#rbDriver.rd-phone #rdBottomStops{grid-column:2;grid-row:2}#rbDriver.rd-phone #rdNext{grid-column:1;grid-row:3}#rbDriver.rd-phone #rdMore{grid-column:2;grid-row:3}}
+@media print{#rb21AppearanceQuick{display:none!important}#printSheet,#printSheet *{color:#111!important}}
+
+</style>
+<script id="rb21-appearance">
+(()=>{const root=document.documentElement,by=id=>document.getElementById(id),media=matchMedia('(prefers-color-scheme:dark)'),themes=['auto','light','dark'],maps=['auto','day','night'];
+function read(key,values){try{const value=localStorage.getItem(key);return values.includes(value)?value:'auto'}catch(e){return 'auto'}}
+let theme=read('rb21Appearance',themes),mapMode=read('rb21MapAppearance',maps);
+const save=(key,value)=>{try{localStorage.setItem(key,value)}catch(e){}};
+function apply(){const dark=theme==='dark'||theme==='auto'&&media.matches;root.dataset.rb21Theme=dark?'dark':'light';root.dataset.rb21Map=mapMode==='auto'?(dark?'night':'day'):mapMode;for(const id of ['rb21AppearanceQuick','rdAppearance']){const b=by(id);if(!b)continue;b.textContent=theme==='auto'?'◐':dark?'☾':'☀';b.title='Appearance: '+theme+' — tap to change';b.setAttribute('aria-label',b.title)}if(by('rb21ThemeSelect'))by('rb21ThemeSelect').value=theme;if(by('rb21MapSelect'))by('rb21MapSelect').value=mapMode;if(by('rdMapAppearance'))by('rdMapAppearance').textContent='Map tone: '+mapMode;}
+function chooseTheme(value){theme=value;save('rb21Appearance',theme);apply()}
+function chooseMap(value){mapMode=value;save('rb21MapAppearance',mapMode);apply()}
+function quick(id){const b=document.createElement('button');b.id=id;b.type='button';b.onclick=()=>chooseTheme(themes[(themes.indexOf(theme)+1)%themes.length]);return b;}
+function init(){const header=document.querySelector('body>header'),side=by('optionsSidebar'),driver=by('rbDriver');if(!header||!side||!driver)return;
+header.append(quick('rb21AppearanceQuick'));driver.querySelector('.rdHead').append(quick('rdAppearance'));
+const panel=document.createElement('div');panel.id='rb21AppearancePanel';panel.className='panel';panel.dataset.rb20Group='settings';panel.classList.add('rb20-out');panel.innerHTML='<b>Appearance</b><label>Interface theme<select id="rb21ThemeSelect"><option value="auto">Automatic (device)</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Map brightness<select id="rb21MapSelect"><option value="auto">Follow interface theme</option><option value="day">Day (original imagery)</option><option value="night">Night (dim imagery)</option></select></label><p class="small">Appearance is saved on this device. Map tone changes the background imagery only, not route lines or pins.</p>';side.prepend(panel);by('rb21ThemeSelect').onchange=e=>chooseTheme(e.target.value);by('rb21MapSelect').onchange=e=>chooseMap(e.target.value);
+const mapBtn=document.createElement('button');mapBtn.type='button';mapBtn.id='rdMapAppearance';mapBtn.onclick=()=>chooseMap(maps[(maps.indexOf(mapMode)+1)%maps.length]);by('rdMapTools').append(mapBtn);
+const stops=document.createElement('button');stops.id='rdBottomStops';stops.type='button';stops.textContent='Stops';stops.onclick=()=>by('rdToggle').click();by('rdMainActions').append(stops);const sync=()=>{stops.textContent=by('rdToggle').textContent;stops.setAttribute('aria-expanded',String(driver.classList.contains('rd-show-list')))};new MutationObserver(sync).observe(driver,{attributes:true,attributeFilter:['class']});sync();
+// The original driver handlers own stop status, inspection, GPS and manual guidance.
+// Only add presentation controls; no route or account state is changed.
+if(media.addEventListener)media.addEventListener('change',apply);else media.addListener(apply);apply();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();})();
+
+</script>
 </body></html>
