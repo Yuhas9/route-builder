@@ -2145,7 +2145,7 @@ const nav=$('rdNavPanel');if(nav&&!nav.dataset.size)nav.dataset.size='compact';
 
 <style id="rb21-appearance-style">
 /* V21: shared appearance tokens; routing and storage are unchanged. */
-:root{--rb21-bg:#eaf0f4;--rb21-panel:#fff;--rb21-alt:#f0f5f8;--rb21-input:#fff;--rb21-text:#173645;--rb21-muted:#526877;--rb21-border:#c6d5de;--rb21-teal:#12667a;--rb21-active:#fff0bd;--rb21-preview:#d8f1ff;--rb21-green:#087954;--rb21-red:#b82d3b;--rb21-mapfilter:none}
+:root{--rb21-bg:#eaf0f4;--rb21-panel:#fff;--rb21-alt:#f0f5f8;--rb21-input:#fff;--rb21-text:#173645;--rb21-muted:#526877;--rb21-border:#c6d5de;--rb21-teal:#12667a;--rb21-active:#fff0bd;--rb21-preview:#d8f1ff;--rb21-green:#087954;--rb21-red:#b82d3b}
 :root[data-rb21-theme=dark]{color-scheme:dark;--rb21-bg:#111820;--rb21-panel:#1b252e;--rb21-alt:#263540;--rb21-input:#151f28;--rb21-text:#e5edf3;--rb21-muted:#acbeca;--rb21-border:#3a4b59;--rb21-teal:#12667a;--rb21-active:#554623;--rb21-preview:#15465c;--rb21-green:#087954;--rb21-red:#b82d3b;--rb20-ink:#dfeaf1;--rb20-paper:#111820}
 body{background:var(--rb21-bg);color:var(--rb21-text)}body>header{background:#103e50;color:#fff;border-color:var(--rb21-border)}body>header h1{letter-spacing:.1px}body>header .small{color:#c4dde7}
 #rb21AppearanceQuick,#rbDriver #rdAppearance{min-height:44px;min-width:44px;background:#124b60;color:white;border:1px solid #638694;white-space:nowrap;font-weight:700}
@@ -2161,8 +2161,8 @@ body{background:var(--rb21-bg);color:var(--rb21-text)}body>header{background:#10
 :root[data-rb21-theme=dark] #rb20Tabs button{color:var(--rb21-text)}:root[data-rb21-theme=dark] #rb20Tabs .rb20Run,:root[data-rb21-theme=dark] #rbRunOpen{background:#087954!important;color:white!important}
 :root[data-rb21-theme=dark] a{color:#8ad3fa}:root[data-rb21-theme=dark] .leaflet-control-attribution{background:#182630d9;color:#d7e4ec}
 :root[data-rb21-theme=dark] .leaflet-bar a{background:#1b252e;color:#e5edf3;border-color:#3a4b59}
-:root[data-rb21-map=night] :is(#map,#rdMap,#gpxWorkspaceMap) .leaflet-tile-pane{filter:brightness(.60) saturate(.82)}
-/* Dark map only dims imagery, not pins, road lines or UI. */
+:root[data-rb21-theme=dark] .bulk-tools #toggleMapTools{background:var(--rb21-input);color:var(--rb21-text);border-color:var(--rb21-border)}
+/* V22: interface theme never dims map imagery. Existing imagery tools remain independent. */
 #rbDriver,#rbDriver:not(.rd-phone){background:var(--rb21-bg);color:var(--rb21-text)}
 #rbDriver .rdHead,#rbDriver:not(.rd-phone) .rdHead{background:#103e50;box-shadow:none}
 #rbDriver .rdListPane,#rbDriver:not(.rd-phone) .rdListPane,#rbDriver .rdFoot,#rbDriver:not(.rd-phone) .rdFoot{background:var(--rb21-panel);border-color:var(--rb21-border);color:var(--rb21-text)}
@@ -2216,18 +2216,18 @@ body{background:var(--rb21-bg);color:var(--rb21-text)}body>header{background:#10
 
 </style>
 <script id="rb21-appearance">
-(()=>{const root=document.documentElement,by=id=>document.getElementById(id),media=matchMedia('(prefers-color-scheme:dark)'),themes=['auto','light','dark'],maps=['auto','day','night'];
-function read(key,values){try{const value=localStorage.getItem(key);return values.includes(value)?value:'auto'}catch(e){return 'auto'}}
-let theme=read('rb21Appearance',themes),mapMode=read('rb21MapAppearance',maps);
+(()=>{const root=document.documentElement,by=id=>document.getElementById(id),media=matchMedia('(prefers-color-scheme:dark)'),themes=['auto','light','dark'];
+function read(key,values){try{const value=localStorage.getItem(key);return values.includes(value)?value:'dark'}catch(e){return 'dark'}}
+let theme=read('rb21Appearance',themes);
+// Retire the old map theme preference; never apply it to imagery.
+try{localStorage.removeItem('rb21MapAppearance')}catch(e){}
 const save=(key,value)=>{try{localStorage.setItem(key,value)}catch(e){}};
-function apply(){const dark=theme==='dark'||theme==='auto'&&media.matches;root.dataset.rb21Theme=dark?'dark':'light';root.dataset.rb21Map=mapMode==='auto'?(dark?'night':'day'):mapMode;for(const id of ['rb21AppearanceQuick','rdAppearance']){const b=by(id);if(!b)continue;b.textContent=theme==='auto'?'◐':dark?'☾':'☀';b.title='Appearance: '+theme+' — tap to change';b.setAttribute('aria-label',b.title)}if(by('rb21ThemeSelect'))by('rb21ThemeSelect').value=theme;if(by('rb21MapSelect'))by('rb21MapSelect').value=mapMode;if(by('rdMapAppearance'))by('rdMapAppearance').textContent='Map tone: '+mapMode;}
+function apply(){const dark=theme==='dark'||theme==='auto'&&media.matches;root.dataset.rb21Theme=dark?'dark':'light';delete root.dataset.rb21Map;for(const id of ['rb21AppearanceQuick','rdAppearance']){const b=by(id);if(!b)continue;b.textContent=theme==='auto'?'◐':dark?'☾':'☀';b.title='Appearance: '+theme+' — tap to change';b.setAttribute('aria-label',b.title)}if(by('rb21ThemeSelect'))by('rb21ThemeSelect').value=theme;}
 function chooseTheme(value){theme=value;save('rb21Appearance',theme);apply()}
-function chooseMap(value){mapMode=value;save('rb21MapAppearance',mapMode);apply()}
 function quick(id){const b=document.createElement('button');b.id=id;b.type='button';b.onclick=()=>chooseTheme(themes[(themes.indexOf(theme)+1)%themes.length]);return b;}
 function init(){const header=document.querySelector('body>header'),side=by('optionsSidebar'),driver=by('rbDriver');if(!header||!side||!driver)return;
 header.append(quick('rb21AppearanceQuick'));driver.querySelector('.rdHead').append(quick('rdAppearance'));
-const panel=document.createElement('div');panel.id='rb21AppearancePanel';panel.className='panel';panel.dataset.rb20Group='settings';panel.classList.add('rb20-out');panel.innerHTML='<b>Appearance</b><label>Interface theme<select id="rb21ThemeSelect"><option value="auto">Automatic (device)</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Map brightness<select id="rb21MapSelect"><option value="auto">Follow interface theme</option><option value="day">Day (original imagery)</option><option value="night">Night (dim imagery)</option></select></label><p class="small">Appearance is saved on this device. Map tone changes the background imagery only, not route lines or pins.</p>';side.prepend(panel);by('rb21ThemeSelect').onchange=e=>chooseTheme(e.target.value);by('rb21MapSelect').onchange=e=>chooseMap(e.target.value);
-const mapBtn=document.createElement('button');mapBtn.type='button';mapBtn.id='rdMapAppearance';mapBtn.onclick=()=>chooseMap(maps[(maps.indexOf(mapMode)+1)%maps.length]);by('rdMapTools').append(mapBtn);
+const panel=document.createElement('div');panel.id='rb21AppearancePanel';panel.className='panel';panel.dataset.rb20Group='settings';panel.classList.add('rb20-out');panel.innerHTML='<b>Appearance</b><label>Interface theme<select id="rb21ThemeSelect"><option value="auto">Automatic (device)</option><option value="light">Light</option><option value="dark">Dark</option></select></label><p class="small">Appearance is saved on this device. Maps stay in daylight in every interface theme.</p>';side.prepend(panel);by('rb21ThemeSelect').onchange=e=>chooseTheme(e.target.value);
 const stops=document.createElement('button');stops.id='rdBottomStops';stops.type='button';stops.textContent='Stops';stops.onclick=()=>by('rdToggle').click();by('rdMainActions').append(stops);const sync=()=>{stops.textContent=by('rdToggle').textContent;stops.setAttribute('aria-expanded',String(driver.classList.contains('rd-show-list')))};new MutationObserver(sync).observe(driver,{attributes:true,attributeFilter:['class']});sync();
 // The original driver handlers own stop status, inspection, GPS and manual guidance.
 // Only add presentation controls; no route or account state is changed.

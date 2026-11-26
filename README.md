@@ -1,10 +1,21 @@
+# Route Builder V22 — daylight maps
+
+Replace index.html and demo.html in your existing GitHub Pages repository. Back up your route library first.
+
+- Dark is the default interface theme for devices without a saved theme. Existing explicit theme preferences are preserved. Light, Dark and Automatic still work.
+- Maps no longer dim automatically or have a separate day/night appearance selector, in either planner or Driver Mode. The old map theme preference is discarded. Existing map layers and manual satellite picture enhancement tools are unchanged.
+- Map Tools button contrast improved in dark mode.
+- Sequencing, GPX, storage and Driver Mode actions unchanged from V21. No Google Maps API key required.
+
+Validation: inline JavaScript syntax and isolated appearance preference tests. Live maps and device behavior require testing.
+
 # Route Builder V21 — appearance and Driver Mode
 
 Replace `index.html` and `demo.html` in your existing GitHub Pages repository. Back up your existing route library first. This is based on V20, not a separate test page. No Google Maps key is required.
 
-## New in V21
+## Prior V21 features (superseded where noted)
 - Settings → Appearance: Light, Dark or Automatic (follows device). The sun/moon/half-circle button in the planner and Driver Mode cycles the same preferences.
-- Independent day/night/automatic map brightness; only map tiles are dimmed. Driver Map settings also has a map tone control. Existing satellite/road layers remain available.
+- Separate day/night map brightness was removed in V22. Existing satellite/road layers remain available.
 - Tablet: list/map split, compact guidance, a full-width collection action bar with equal-sized Complete and Not Out buttons, and existing status filters and extra actions.
 - Phone: equal-sized collection buttons, bottom Stops toggle for existing expandable stop sheet, Previous/Next/More buttons. Existing preview and manual/GPS controls remain in place.
 - Navigation defaults to Compact on both layouts, with Full and Minimized available from the size button. Preferences are stored on the device/browser when local storage is available.
