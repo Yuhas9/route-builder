@@ -192,7 +192,7 @@ body.rb-review-view .missing-marker{box-shadow:0 0 0 3px #fff,0 0 0 5px #eab308}
 const bundled=[];
 const KEY='routebuilder_master_v3';let library=[];try{library=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}if(!Array.isArray(library))library=[];
 if(!library.length)library=[{id:'empty-route',name:'My first route (import GPX)',points:[],stops:[]}];
-let activeMode=localStorage.getItem('routebuilder_mode')||'residential';let active=library[0].id;library.forEach(r=>{if(!r.mode)r.mode='residential'});if(!library.some(r=>r.mode===activeMode)){const seed={id:'route-'+activeMode+'-start',name:activeMode==='commercial'?'My first commercial route':'My first residential route',points:[],stops:[],mode:activeMode};library.push(seed);active=seed.id}else{active=(library.find(r=>r.mode===activeMode)||library[0]).id}let map, track, comparisonTrack=null, stopLayer, showStopLabels=false, baseLayer, roadLabels, placingStop=null, addressLayer=null, addressFetchId=0, addressTimer=null;const $=id=>document.getElementById(id);const current=()=>library.find(x=>x.id===active)||library.find(x=>x.mode===activeMode)||library[0];const modeRoutes=()=>library.filter(r=>(r.mode||'residential')===activeMode);const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(library));window.scheduleCloudSave?.();const st=$('saveStatus');if(st)st.textContent='Saved in this browser • Cloud sync may still be pending'}catch(e){setStatus('Browser storage is full. Export a library backup to preserve your routes.')}};
+let activeMode=localStorage.getItem('routebuilder_mode')||'residential';let active=library[0].id;library.forEach(r=>{if(!r.mode)r.mode='residential'});if(!library.some(r=>r.mode===activeMode)){const seed={id:'route-'+activeMode+'-start',name:activeMode==='commercial'?'My first commercial route':'My first residential route',points:[],stops:[],mode:activeMode};library.push(seed);active=seed.id}else{active=(library.find(r=>r.mode===activeMode)||library[0]).id}let map, track, comparisonTrack=null, stopLayer, showStopLabels=false, baseLayer, roadLabels, placingStop=null, addressLayer=null, addressFetchId=0, addressTimer=null;const $=id=>document.getElementById(id);const current=()=>library.find(x=>x.id===active)||library.find(x=>x.mode===activeMode)||library[0];const modeRoutes=()=>library.filter(r=>(r.mode||'residential')===activeMode);const save=()=>{let cached=false;try{localStorage.setItem(KEY,JSON.stringify(library));cached=true;}catch(e){setStatus('Browser cache unavailable. Keep this tab open until cloud sync finishes; export a backup if sync fails.');}window.rbLocalCacheOK=cached;window.scheduleCloudSave?.();const st=$('saveStatus');if(st)st.textContent=cached?'Saved in this browser • Cloud sync may still be pending':'Browser cache unavailable • Cloud save pending';return cached;};
 // Remember intentional removals separately from the stops list so repeated GIS scans do not resurrect them.
 function removedPointKey(lat,lon){return Number.isFinite(lat)&&Number.isFinite(lon)?`${Math.round(lat*1e5)}:${Math.round(lon*1e5)}`:null}
 function rememberRemovedStop(route,stop){const key=removedPointKey(stop?.lat,stop?.lon);if(!key)return;if(!Array.isArray(route.suppressedScanPoints))route.suppressedScanPoints=[];if(!route.suppressedScanPoints.includes(key))route.suppressedScanPoints.push(key)}
@@ -1370,7 +1370,7 @@ function configure(){
  let url=el('sbUrl').value.trim(),key=el('sbKey').value.trim();
  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(url)||!key){throw Error('Enter your Supabase project URL and publishable/anon key.')}
  if(key.startsWith('sb_secret_')||key.startsWith('eyJ')&&key.includes('service_role'))throw Error('Never enter a secret or service-role key.');
- localStorage.setItem(cfgKey,JSON.stringify({url,key}));
+ try{localStorage.setItem(cfgKey,JSON.stringify({url,key}));}catch(e){/* Configuration is usable for this session even if cache is full. */}
  if(!window.supabase?.createClient)throw Error('Supabase library could not load. Check internet access.');
  client=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   client.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')showRecovery();});
@@ -1382,7 +1382,7 @@ async function enter(){
  if(initialized)return;
  const {data,error}=await client.from('route_libraries').select('data').eq('user_id',user.id).maybeSingle();
  if(error)throw Error('Unable to load private routes: '+error.message+' — Check that the SQL setup and RLS policies are installed.');
- if(data){library=normalizeLibrary(data.data);active=library[0].id;localStorage.setItem(KEY,JSON.stringify(library));}
+ if(data){library=normalizeLibrary(data.data);active=library[0].id;try{localStorage.setItem(KEY,JSON.stringify(library));window.rbLocalCacheOK=true;}catch(e){window.rbLocalCacheOK=false;}}
  else {
   // Never upload local data silently: it may contain previously saved private routes.
   let old=[];try{old=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}
@@ -1390,7 +1390,7 @@ async function enter(){
   library=useOld?old:normalizeLibrary([]);active=library[0].id;
   await client.from('route_libraries').upsert({user_id:user.id,data:library,updated_at:new Date().toISOString()},{onConflict:'user_id'}).then(({error})=>{if(error)throw error});
  }
- initialized=true;el('secureGate').style.display='none';window.startRouteBuilder();
+ initialized=true;try{window.startRouteBuilder();}catch(e){initialized=false;throw Error('Signed in, but route display failed: '+(e.message||e));}el('secureGate').style.display='none';if(window.rbLocalCacheOK===false){const st=el('saveStatus');if(st)st.textContent='Cloud library loaded • Browser cache full; internet required to save';setStatus('Cloud routes loaded. Browser cache is full. Keep internet connected and export backups.');}
 }
 async function flushRouteCloud(){
  if(!initialized||!user||suppress)return;
@@ -1398,8 +1398,8 @@ async function flushRouteCloud(){
  while(saving)await new Promise(r=>setTimeout(r,100));
  if(!changedDuringSave)return;
  saving=true;
- try{while(changedDuringSave){changedDuringSave=false;const snapshot=JSON.parse(JSON.stringify(library));const {error}=await client.from('route_libraries').upsert({user_id:user.id,data:snapshot,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;}}
- catch(e){changedDuringSave=true;throw e;}finally{saving=false;}
+ try{while(changedDuringSave){changedDuringSave=false;const snapshot=JSON.parse(JSON.stringify(library));const {error}=await client.from('route_libraries').upsert({user_id:user.id,data:snapshot,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;}const st=el('saveStatus');if(st)st.textContent=window.rbLocalCacheOK===false?'Cloud saved • Browser cache unavailable':'Cloud saved • Local cache available';}
+ catch(e){changedDuringSave=true;const st=el('saveStatus');if(st)st.textContent='Cloud save failed • Export a backup before closing';throw e;}finally{saving=false;}
 }
 window.rbFlushCloud=flushRouteCloud;
 window.scheduleCloudSave=()=>{if(!initialized||!user||suppress)return;changedDuringSave=true;clearTimeout(saveTimer);saveTimer=setTimeout(()=>flushRouteCloud().catch(e=>alert('Cloud save failed: '+e.message+'\nExport a backup before closing the app.')),900);};
@@ -1502,7 +1502,7 @@ el('syncDemoRoutesBtn').onclick=async()=>{
  }catch(e){demoStatus.textContent='Sync failed: '+(e.message||e)+'\nNo master routes were changed.';}
  finally{button.disabled=false;}
 };
-el('signOut').onclick=async()=>{if(!confirm('Sign out of Route Builder?'))return;clearTimeout(saveTimer);if(changedDuringSave)await new Promise(resolve=>setTimeout(resolve,1200));await client?.auth.signOut();location.reload()};
+el('signOut').onclick=async()=>{if(!confirm('Sign out of Route Builder?'))return;try{await flushRouteCloud();const result=await client?.auth.signOut();if(result?.error)throw result.error;location.reload();}catch(e){setStatus('Sign-out stopped: '+(e.message||e)+'. Export a backup or retry cloud sync before closing.');}};
 (async()=>{try{if(recoveryFromUrl)showRecovery();if(!el('sbUrl').value||!el('sbKey').value)return;configure();const {data}=await client.auth.getUser();if(recoveryMode)return;if(data?.user){user=data.user;await enter();}}catch(e){if(recoveryMode)el('resetPasswordError').textContent=e.message;else say(e.message)}})();
 })();
 </script><script>
@@ -2177,7 +2177,7 @@ const setup=$('rb16New').closest('.row'),build=$('rb16Original').closest('.row')
 function card(id,title,group){const p=document.createElement('div');p.className='panel';p.id=id;p.dataset.rb20Group=group;const b=document.createElement('b');b.textContent=title;p.append(b);return p;}
 const routeCard=card('rb20RoutePanel','Create & manage routes','routes');routeCard.append(setup,versions);panel.before(routeCard);
 const reviewCard=card('rb20ReviewPanel','Compare & export paths','review');reviewCard.append(review);panel.after(reviewCard);
-const title=panel.querySelector(':scope > b');if(title)title.textContent='Build customer sequence · V27';build.id='rb20BuildActions';$('rb16Original').textContent='1 · Re-sequence stops from recorded GPX (offline)';$('rb18Named').textContent='2 · Recalculate using named streets (online)';$('rb16Optimize').textContent='3 · Optimize on recorded roads';$('rb16Generate').textContent='Generate GPX from current stop order';build.append($('rb18Named'),$('rb16Optimize'),$('rb16Generate'));
+const title=panel.querySelector(':scope > b');if(title)title.textContent='Build customer sequence · V28';build.id='rb20BuildActions';$('rb16Original').textContent='1 · Re-sequence stops from recorded GPX (offline)';$('rb18Named').textContent='2 · Recalculate using named streets (online)';$('rb16Optimize').textContent='3 · Optimize on recorded roads';$('rb16Generate').textContent='Generate GPX from current stop order';build.append($('rb18Named'),$('rb16Optimize'),$('rb16Generate'));
 const guide=document.createElement('p');guide.className='small';guide.textContent='Sequence pins first. Yellow review pins are provisional, including estimated turnaround placements. Optimize only after reviewing the service passes. No new road connections are invented.';build.before(guide);const result=document.createElement('div');result.id='rb24Result';result.setAttribute('role','status');result.setAttribute('aria-live','polite');result.style.cssText='padding:10px;border:1px solid var(--rb21-border);border-radius:6px;overflow-wrap:anywhere;line-height:1.45';result.textContent='Ready. Choose a sequencing tool. Results will appear here.';const activeInfo=document.createElement('div');activeInfo.id='rb24Active';activeInfo.className='small';const cancel=document.createElement('button');cancel.id='rb24Cancel';cancel.type='button';cancel.textContent='Cancel online street check';cancel.hidden=true;cancel.onclick=()=>window.rb24CancelOnline();guide.after(activeInfo,result,cancel);
 const findings=document.createElement('div');findings.id='rb20ReviewList';panel.append(findings);
 // V23: inspect the saved/imported order without changing the route, then let the user choose a new recorded version.
@@ -2260,7 +2260,7 @@ function reviewPass(r,stop){
   L.circleMarker(p,{radius:16,color:'#22d3ee',weight:3,fillOpacity:0,interactive:false}).addTo(reviewLayer);
   map.setView(p,19);confirmButton.disabled=false;confirmStay.disabled=false;
  }
- function approve(advance){
+ async function approve(advance){
   const c=state.chosen;
   if(reviewState!==state||current()!==r||!r.stops.includes(stop)||!c||!pts[c.j]||!pts[c.j+1])return;
   if(signature()!==originalSignature||(r.rbRecordedPoints||r.points)!==pts){clearReview();setStatus('Route or pin changed. Open review again.');return;}
@@ -2271,9 +2271,10 @@ function reviewPass(r,stop){
   rememberChange();stop.rb20Pass=pass;stop.streetOrderReview=false;stop.rbMatchReason='Driver-confirmed pass';r.rbPathStale=true;
   save();
   let stored=false;try{const snapshot=JSON.parse(localStorage.getItem(KEY)||'[]');const persisted=snapshot.find(x=>x.id===r.id);const i=r.stops.indexOf(stop),item=stop.id?persisted?.stops.find(s=>s.id===stop.id):persisted?.stops[i];stored=!!item&&item.streetOrderReview===false&&item.rb20Pass?.segment===pass.segment&&item.rb20Pass?.j===pass.j;}catch(e){}
-  if(!stored){Object.assign(stop,prior);r.rbPathStale=stale;detail.textContent='Approval was not saved. Export a library backup and free storage before continuing.';return;}
+  if(!stored&&window.rbLocalCacheOK===false&&typeof window.rbFlushCloud==='function'){confirmButton.disabled=true;confirmStay.disabled=true;try{await window.rbFlushCloud();stored=true;}catch(e){detail.textContent='Cloud confirmation failed. Your change remains in memory; export a backup and retry cloud sync before leaving.';clearReview();refresh();setStatus('Cloud confirmation failed. Export a library backup before closing.');return;}}
+  if(!stored){Object.assign(stop,prior);r.rbPathStale=stale;detail.textContent='Approval was not saved. Export a library backup before continuing.';return;}
   reviewSkipped.delete(stop);clearReview();refresh();
-  setStatus('Pass confirmed locally. '+r.stops.filter(includedFlag).length+' warnings remain. Re-sequence after review.');
+  setStatus('Pass confirmed '+(window.rbLocalCacheOK===false?'in cloud':'locally')+'. '+r.stops.filter(includedFlag).length+' warnings remain. Re-sequence after review.');
   if(advance)nextReview(r,stop);
  }
  confirmButton.disabled=true;confirmStay.disabled=true;
